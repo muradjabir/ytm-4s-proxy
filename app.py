@@ -19,7 +19,9 @@ else:
 
 import shutil
 NODE_PATH = shutil.which('node') or shutil.which('nodejs') or 'node'
-YTDLP_PATH = shutil.which('yt-dlp') or os.path.join(os.path.dirname(os.path.abspath(__file__)), 'venv', 'bin', 'yt-dlp')
+YTDLP_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'venv', 'bin', 'yt-dlp')
+if not os.path.exists(YTDLP_PATH):
+    YTDLP_PATH = shutil.which('yt-dlp')
 
 def make_ytdl_opts():
     """Build yt-dlp Python API options for metadata only (no download)."""
@@ -139,6 +141,7 @@ def download_audio(video_id, background=False):
             '--remote-components', 'ejs:github',
             '--output', out_tmpl,
             '--no-playlist',
+            '--no-part',  # Write directly to destination so stream can read it immediately
             '--newline',  # Force one progress line per update (parseable)
         ]
         if os.path.exists('cookies.txt'):
@@ -155,17 +158,34 @@ def download_audio(video_id, background=False):
                 text=True,
                 cwd=os.path.dirname(os.path.abspath(__file__))
             )
+            error_log = []
             for line in proc.stdout:
                 line = line.rstrip()
+                error_log.append(line)
                 # Parse: [download]  37.5% of    5.84MiB ...
                 m = re.search(r'\[download\]\s+(\d+\.?\d*)%', line)
+                
+                if video_id not in download_progress:
+                    download_progress[video_id] = {}
+                    
                 if m:
                     pct = float(m.group(1))
-                    download_progress[video_id] = {'percent': pct, 'status': 'downloading'}
+                    download_progress[video_id]['percent'] = pct
+                    download_progress[video_id]['status'] = 'downloading'
+                    
+                # Parse total size
+                if 'total_bytes' not in download_progress[video_id]:
+                    sz_m = re.search(r'of\s+[~]?(\d+\.?\d*)(KiB|MiB|GiB|B)', line)
+                    if sz_m:
+                        val = float(sz_m.group(1))
+                        unit = sz_m.group(2)
+                        mult = {'B': 1, 'KiB': 1024, 'MiB': 1024**2, 'GiB': 1024**3}
+                        download_progress[video_id]['total_bytes'] = int(val * mult[unit])
             proc.wait(timeout=300)
             if proc.returncode != 0:
                 download_progress[video_id] = {'percent': 0, 'status': 'error'}
                 print(f'[download] yt-dlp error for {video_id}')
+                print("\n".join(error_log))
                 return None
             download_progress[video_id] = {'percent': 100, 'status': 'done'}
             print(f'[download] Done: {video_id}')
@@ -267,27 +287,80 @@ def preload(video_id):
 @app.route('/stream/<video_id>')
 def stream(video_id):
     """
-    Download the full audio file to disk first, then serve it.
-    This completely avoids streaming proxy issues with Safari's
-    multi-range requests and connection management.
+    If the file is already cached locally, stream it using send_file.
+    If it's not cached yet, redirect the browser to the direct YouTube stream URL
+    so it plays instantly while the background preload task finishes caching it.
     """
     try:
-        # Check if already cached
+        # If file is fully downloaded, use standard send_file
         cached_path = get_cached_audio_path(video_id)
-        if not cached_path:
-            # Download it now (blocking)
-            cached_path = download_audio(video_id)
+        status_info = download_progress.get(video_id, {})
+        status = status_info.get('status')
+        total_size = status_info.get('total_bytes')
 
-        if not cached_path or not os.path.exists(cached_path):
-            return "Could not download audio", 500
+        if cached_path and os.path.exists(cached_path) and status == 'done':
+            ext = cached_path.rsplit('.', 1)[-1]
+            mime = {'m4a': 'audio/mp4', 'mp3': 'audio/mpeg', 'webm': 'audio/webm', 'ogg': 'audio/ogg'}.get(ext, 'audio/mp4')
+            return send_file(cached_path, mimetype=mime, conditional=True)
 
-        # Determine MIME type
+        # Wait until file starts downloading and we know its total size
+        import time
+        for _ in range(60): # Wait up to 30s for yt-dlp to start outputting size
+            cached_path = get_cached_audio_path(video_id)
+            status_info = download_progress.get(video_id, {})
+            total_size = status_info.get('total_bytes')
+            if status_info.get('status') == 'error':
+                return "Audio download failed internally", 500
+            if cached_path and os.path.exists(cached_path) and total_size:
+                break
+            time.sleep(0.5)
+        else:
+            return "Audio is still preparing...", 500
+
         ext = cached_path.rsplit('.', 1)[-1]
-        mime_map = {'m4a': 'audio/mp4', 'mp3': 'audio/mpeg', 'webm': 'audio/webm', 'ogg': 'audio/ogg'}
-        mime = mime_map.get(ext, 'audio/mp4')
+        mime = {'m4a': 'audio/mp4', 'mp3': 'audio/mpeg', 'webm': 'audio/webm', 'ogg': 'audio/ogg'}.get(ext, 'audio/mp4')
 
-        # send_file handles all Range requests automatically and correctly
-        return send_file(cached_path, mimetype=mime, conditional=True)
+        # Handle Range requests for the growing file
+        range_header = request.headers.get('Range', None)
+        start = 0
+        end = total_size - 1
+        
+        if range_header:
+            match = re.search(r'bytes=(\d+)-(\d*)', range_header)
+            if match:
+                start = int(match.group(1))
+                if match.group(2):
+                    end = int(match.group(2))
+                    
+        length = end - start + 1
+        
+        def generate():
+            with open(cached_path, 'rb') as f:
+                f.seek(start)
+                pos = start
+                while pos <= end:
+                    chunk_size = min(8192, end - pos + 1)
+                    data = f.read(chunk_size)
+                    if data:
+                        yield data
+                        pos += len(data)
+                    else:
+                        s = download_progress.get(video_id, {}).get('status')
+                        if s in ('done', 'error'):
+                            break
+                        time.sleep(0.1)
+
+        headers = {
+            'Content-Type': mime,
+            'Content-Length': str(length),
+            'Accept-Ranges': 'bytes',
+        }
+        status_code = 200
+        if range_header:
+            headers['Content-Range'] = f'bytes {start}-{end}/{total_size}'
+            status_code = 206
+            
+        return Response(generate(), status=status_code, headers=headers)
 
     except Exception as e:
         return f"Stream error: {str(e)}", 500
@@ -312,9 +385,8 @@ def library():
         playlists = ytmusic.get_library_playlists()
         return render_template('library.html', playlists=playlists)
     except Exception as e:
-        if not os.path.exists('headers_auth.json'):
-            return redirect(url_for('login'))
-        return f"Error loading library: {str(e)}", 500
+        print(f"Auth error (redirecting to login): {str(e)}")
+        return redirect(url_for('login'))
 
 @app.route('/playlist/<playlist_id>')
 def playlist(playlist_id):

@@ -57,10 +57,9 @@
     }
 
     // ---- Play a song ----
-    // To bypass iOS background suspension, we immediately play a looping silent MP3
-    // via a base64 Data URI. This tricks Safari into keeping the audio hardware session 
-    // active, which in turn keeps JavaScript running even if the screen is off.
-    // We then poll the server until the real audio is cached, and swap the src.
+    // We set audio.src immediately. If it's cached, the server sends the file.
+    // If not, the server redirects to a direct YouTube URL for instant playback,
+    // while the /preload endpoint caches it in the background!
     window.playSong = function(videoId, title, thumbUrl) {
         stopProgressPoll();
 
@@ -71,45 +70,15 @@
         progressBar.className = 'loading'; // use CSS shimmer animation
         bottomPlayer.style.display = 'block';
 
-        // 1. Play silent loop instantly
-        audio.loop = true;
-        audio.src = silentMp3;
-        audio.play();
-
-        // 2. Trigger preload in the background
+        // 1. Trigger preload in the background to ensure it gets cached
         var xhrInit = new XMLHttpRequest();
         xhrInit.open('GET', '/preload/' + videoId, true);
         xhrInit.send();
 
-        // 3. Start polling for download progress
-        pollTimer = setInterval(function() {
-            var xhr = new XMLHttpRequest();
-            xhr.open('GET', '/status/' + videoId, true);
-            xhr.onreadystatechange = function() {
-                if (xhr.readyState === 4 && xhr.status === 200) {
-                    try {
-                        var data = JSON.parse(xhr.responseText);
-                        if (data.status === 'done') {
-                            stopProgressPoll();
-                            progressBar.className = '';
-                            progressBar.style.background = '#f00';
-                            audio.loop = false;
-                            audio.src = '/stream/' + videoId;
-                            audio.play();
-                        } else if (data.status === 'error') {
-                            stopProgressPoll();
-                            playerTime.textContent = 'Error';
-                            progressBar.className = '';
-                            audio.loop = false;
-                        } else {
-                            var pct = data.percent || 0;
-                            playerTime.textContent = Math.round(pct) + '%';
-                        }
-                    } catch(e) {}
-                }
-            };
-            xhr.send();
-        }, 1000);
+        // 2. Play immediately!
+        audio.loop = false;
+        audio.src = '/stream/' + videoId;
+        audio.play();
 
         // Preload next song 10s after starting
         setTimeout(function() { preloadNext(); }, 10000);

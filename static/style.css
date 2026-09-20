@@ -241,7 +241,7 @@ audio {
     border-top: 1px solid #333;
 }
 .player-progress {
-    height: 2px;
+    height: 4px;
     background: #333;
     width: 100%;
 }
