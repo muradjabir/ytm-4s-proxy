@@ -585,7 +585,9 @@ def download_audio(video_id, background=False):
         }
 
         url = f'https://music.youtube.com/watch?v={video_id}'
-        out_tmpl = os.path.join(CACHE_DIR, f'{video_id}.%(ext)s')
+        tmp_dir = os.path.join(CACHE_DIR, '.tmp')
+        os.makedirs(tmp_dir, exist_ok=True)
+        out_tmpl = os.path.join(tmp_dir, f'{video_id}.%(ext)s')
 
         cmd = [
             YTDLP_PATH,
@@ -687,6 +689,14 @@ def download_audio(video_id, background=False):
                 print(f'[download] yt-dlp error for {video_id}')
                 print("\n".join(error_log))
                 return None
+            # Move finalized & ffmpeg-fixed file atomically to CACHE_DIR
+            tmp_files = [f for f in os.listdir(tmp_dir) if f.startswith(f"{video_id}.")]
+            if tmp_files:
+                src_file = os.path.join(tmp_dir, tmp_files[0])
+                final_ext = tmp_files[0].rsplit('.', 1)[-1]
+                dest_file = os.path.join(CACHE_DIR, f"{video_id}.{final_ext}")
+                os.replace(src_file, dest_file)
+
             download_progress[video_id] = {
                 'percent': 100,
                 'status': 'done',
@@ -825,21 +835,25 @@ def stream(video_id):
     """
     try:
         cached_path = get_cached_audio_path(video_id)
-        if cached_path and os.path.exists(cached_path):
+        cur_status = download_progress.get(video_id, {}).get('status')
+        # If file is already fully cached and not actively downloading, serve immediately
+        if cached_path and os.path.exists(cached_path) and cur_status not in ('downloading', 'starting'):
             ext = cached_path.rsplit('.', 1)[-1]
             mime = {'m4a': 'audio/mp4', 'mp3': 'audio/mpeg', 'webm': 'audio/webm', 'ogg': 'audio/ogg'}.get(ext, 'audio/mp4')
             return send_file(cached_path, mimetype=mime, conditional=True)
 
         # File is not cached yet: start download
-        download_audio_bg(video_id)
+        if video_id not in download_progress or cur_status == 'error':
+            download_audio_bg(video_id)
 
-        # Wait up to 35s for yt-dlp download & container fixup to complete (~2-4s typical)
+        # Wait up to 35s for yt-dlp download & container fixup to 100% complete
         import time
         for _ in range(175):  # 175 * 0.2s = 35 seconds
-            cached_path = get_cached_audio_path(video_id)
             status_info = download_progress.get(video_id, {})
             cur_status = status_info.get('status')
-            if cached_path and os.path.exists(cached_path):
+            cached_path = get_cached_audio_path(video_id)
+            # ONLY break when status is 'done' and the atomically moved file exists!
+            if cur_status == 'done' and cached_path and os.path.exists(cached_path):
                 break
             if cur_status == 'error':
                 err_msg = status_info.get('message', 'Audio download failed')
@@ -853,6 +867,9 @@ def stream(video_id):
         return send_file(cached_path, mimetype=mime, conditional=True)
 
     except Exception as e:
+        from werkzeug.exceptions import HTTPException
+        if isinstance(e, HTTPException):
+            raise e
         print(f"[stream] Error serving {video_id}: {e}")
         return f"Stream error: {str(e)}", 500
 
