@@ -7,7 +7,7 @@ def convert_to_netscape():
     except Exception:
         return
     
-    cookie_str = headers.get('Cookie', '')
+    cookie_str = headers.get('cookie') or headers.get('Cookie') or ''
     if not cookie_str:
         return
         

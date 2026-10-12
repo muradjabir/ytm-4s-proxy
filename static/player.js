@@ -17,27 +17,118 @@
         document.getElementById('play-pause-icon').src = '/static/pause.svg';
         progressBar.style.background = '#f00';
     });
-    audio.addEventListener('pause', function() {
-        document.getElementById('play-pause-icon').src = '/static/play.svg';
-    });
+    var downloadBar = document.getElementById('download-bar');
+    var pollTimer = null;
+    var currentPollVideoId = null;
+
+    function stopProgressPoll() {
+        if (pollTimer) {
+            clearInterval(pollTimer);
+            pollTimer = null;
+        }
+        currentPollVideoId = null;
+    }
+
+    function startProgressPoll(videoId) {
+        stopProgressPoll();
+        currentPollVideoId = videoId;
+
+        function poll() {
+            if (!currentPollVideoId || currentPollVideoId !== videoId) return;
+            var xhr = new XMLHttpRequest();
+            xhr.open('GET', '/status/' + encodeURIComponent(videoId), true);
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === 4 && xhr.status === 200) {
+                    try {
+                        var data = JSON.parse(xhr.responseText);
+                        var pct = data.percent || 0;
+                        var stateText = data.state || (pct > 0 ? (Math.round(pct) + '%') : 'Connecting…');
+
+                        if (downloadBar) {
+                            downloadBar.style.width = pct + '%';
+                        }
+
+                        // Full-page player status elements if open
+                        var playStatusText = document.getElementById('play-status-text');
+                        var playStatusBar = document.getElementById('play-status-bar');
+                        if (playStatusText && (data.message || data.state)) {
+                            playStatusText.textContent = data.message || data.state;
+                        }
+                        if (playStatusBar) {
+                            playStatusBar.style.width = pct + '%';
+                        }
+
+                        var pageAudio = document.getElementById('audio-player');
+                        var isAudioPlaying = (!audio.paused && audio.currentTime > 0) || (pageAudio && !pageAudio.paused && pageAudio.currentTime > 0);
+
+                        // While audio has not yet started or is buffering at start
+                        if (!isAudioPlaying) {
+                            if (data.cached) {
+                                playerTime.textContent = 'Cached';
+                            } else if (data.status === 'done') {
+                                playerTime.textContent = 'Ready';
+                            } else if (data.status === 'error') {
+                                playerTime.textContent = 'Failed';
+                                stopProgressPoll();
+                            } else {
+                                playerTime.textContent = stateText;
+                            }
+                        } else {
+                            // If audio is actively playing, stop polling once 100% or cached
+                            if (pct >= 100 || data.cached) {
+                                stopProgressPoll();
+                            }
+                        }
+                    } catch(e) {}
+                }
+            };
+            xhr.send();
+        }
+
+        poll();
+        pollTimer = setInterval(poll, 400);
+    }
+
+    window.startProgressPoll = startProgressPoll;
+    window.stopProgressPoll = stopProgressPoll;
+
+    function checkPageAudio() {
+        var pageAudio = document.getElementById('audio-player');
+        if (pageAudio) {
+            var src = pageAudio.currentSrc || '';
+            if (!src) {
+                var sElem = pageAudio.querySelector('source');
+                if (sElem) src = sElem.src || sElem.getAttribute('src') || '';
+            }
+            var m = src.match(/\/stream\/([^/?#]+)/);
+            if (m) {
+                var vid = decodeURIComponent(m[1]);
+                startProgressPoll(vid);
+            }
+        }
+    }
 
     // Buffering indicator
     audio.addEventListener('waiting', function() {
-        progressBar.style.background = '#888';
-        playerTime.textContent = 'Loading\u2026';
+        if (audio.currentTime > 0) {
+            playerTime.textContent = 'Buffering…';
+        }
     });
+
     audio.addEventListener('canplay', function() {
-        progressBar.style.background = '#f00';
+        progressBar.style.background = '#ff0000';
     });
 
     audio.addEventListener('timeupdate', function() {
-        if (audio.duration) {
-            var pct = (audio.currentTime / audio.duration) * 100;
-            progressBar.style.width = pct + '%';
-            var m = Math.floor(audio.currentTime / 60);
-            var s = Math.floor(audio.currentTime % 60);
-            if (s < 10) s = '0' + s;
-            playerTime.textContent = m + ':' + s;
+        if (audio.currentTime > 0) {
+            if (audio.duration) {
+                var pct = (audio.currentTime / audio.duration) * 100;
+                progressBar.style.width = pct + '%';
+                var m = Math.floor(audio.currentTime / 60);
+                var s = Math.floor(audio.currentTime % 60);
+                if (s < 10) s = '0' + s;
+                playerTime.textContent = m + ':' + s;
+            }
         }
     });
 
@@ -49,35 +140,29 @@
         if (audio.paused) { audio.play(); } else { audio.pause(); }
     });
 
-    var silentMp3 = 'data:audio/mpeg;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjYwLjE2LjEwMAAAAAAAAAAAAAAA//tAwAAAAAAAAAAAAAAAAAAAAAAASW5mbwAAAA8AAAAoAAAQ9gAQEBYWHR0dIyMpKSkvLzU1NTs7QUFBSEhOTk5UVFpaWmBgZmZmbGxycnJ5eX9/f4WFi4uLkZGXl5ednaSkpKqqsLCwtra8vLzCwsjIyM7O1dXV29vh4eHn5+3t7fPz+fn5//8AAAAATGF2YzYwLjMxAAAAAAAAAAAAAAAAJAV8AAAAAAAAEPYp+NOpAAAAAAD/+xDEAAPAAAGkAAAAIAAANIAAAARMQU1FMy4xMDBVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVTEFNRTMuMTAwVVVVVf/7EMQpg8AAAaQAAAAgAAA0gAAABFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVMQU1FMy4xMDBVVVVV//sQxFMDwAABpAAAACAAADSAAAAEVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVUxBTUUzLjEwMFVVVVX/+xDEfIPAAAGkAAAAIAAANIAAAARVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVTEFNRTMuMTAwVVVVVf/7EMSmA8AAAaQAAAAgAAA0gAAABFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVMQU1FMy4xMDBVVVVV//sQxM+DwAABpAAAACAAADSAAAAEVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVUxBTUUzLjEwMFVVVVX/+xDE1gPAAAGkAAAAIAAANIAAAARVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVTEFNRTMuMTAwVVVVVf/7EMTWA8AAAaQAAAAgAAA0gAAABFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVMQU1FMy4xMDBVVVVV//sQxNYDwAABpAAAACAAADSAAAAEVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVUxBTUUzLjEwMFVVVVX/+xDE1gPAAAGkAAAAIAAANIAAAARVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVTEFNRTMuMTAwVVVVVf/7EMTWA8AAAaQAAAAgAAA0gAAABFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVMQU1FMy4xMDBVVVVV//sQxNYDwAABpAAAACAAADSAAAAEVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVUxBTUUzLjEwMFVVVVX/+xDE1gPAAAGkAAAAIAAANIAAAARVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVTEFNRTMuMTAwVVVVVf/7EMTWA8AAAaQAAAAgAAA0gAAABFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVMQU1FMy4xMDBVVVVV//sQxNYDwAABpAAAACAAADSAAAAEVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVUxBTUUzLjEwMFVVVVX/+xDE1gPAAAGkAAAAIAAANIAAAARVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVTEFNRTMuMTAwVVVVVf/7EMTWA8AAAaQAAAAgAAA0gAAABFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVMQU1FMy4xMDBVVVVV//sQxNYDwAABpAAAACAAADSAAAAEVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVX/+xDE1gPAAAGkAAAAIAAANIAAAARVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVf/7EMTWA8AAAaQAAAAgAAA0gAAABFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//sQxNYDwAABpAAAACAAADSAAAAEVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVX/+xDE1gPAAAGkAAAAIAAANIAAAARVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVQ==';
-    var pollTimer = null;
-
-    function stopProgressPoll() {
-        if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
-    }
-
     // ---- Play a song ----
-    // We set audio.src immediately. If it's cached, the server sends the file.
-    // If not, the server redirects to a direct YouTube URL for instant playback,
-    // while the /preload endpoint caches it in the background!
     window.playSong = function(videoId, title, thumbUrl) {
         stopProgressPoll();
 
-        playerTitle.textContent = title || 'Loading\u2026';
+        playerTitle.textContent = title || 'Connecting…';
         playerThumb.src = thumbUrl || '';
-        playerTime.textContent = 'Loading\u2026';
-        progressBar.style.width = '100%';
-        progressBar.className = 'loading'; // use CSS shimmer animation
+        playerTime.textContent = 'Connecting…';
+        progressBar.style.width = '0%';
+        progressBar.className = '';
+        if (downloadBar) downloadBar.style.width = '0%';
         bottomPlayer.style.display = 'block';
 
-        // 1. Trigger preload in the background to ensure it gets cached
+        // 1. Start live yt-dlp download state polling
+        startProgressPoll(videoId);
+
+        // 2. Trigger preload in the background to ensure yt-dlp starts caching immediately
         var xhrInit = new XMLHttpRequest();
-        xhrInit.open('GET', '/preload/' + videoId, true);
+        xhrInit.open('GET', '/preload/' + encodeURIComponent(videoId), true);
         xhrInit.send();
 
-        // 2. Play immediately!
+        // 3. Play stream
         audio.loop = false;
-        audio.src = '/stream/' + videoId;
+        audio.src = '/stream/' + encodeURIComponent(videoId);
         audio.play();
 
         // Preload next song 10s after starting
@@ -182,6 +267,7 @@
             if (xhr.readyState === 4 && xhr.status === 200) {
                 mainContent.innerHTML = xhr.responseText;
                 queue = buildQueueFromPage();
+                checkPageAudio();
                 if (pushState !== false) {
                     window.history.pushState(null, '', url);
                 }
@@ -248,4 +334,7 @@
     window.addEventListener('popstate', function() {
         loadPage(window.location.href, false);
     });
+
+    // Check page audio on initial load
+    checkPageAudio();
 })();

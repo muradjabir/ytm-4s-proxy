@@ -344,7 +344,7 @@ def get_cached_audio_path(video_id):
     return None
 
 def download_audio(video_id, background=False):
-    """Download audio to cache using yt-dlp CLI with progress tracking."""
+    """Download audio to cache using yt-dlp CLI with rich progress and speed tracking."""
     with download_locks_lock:
         if video_id not in download_locks:
             download_locks[video_id] = threading.Lock()
@@ -357,10 +357,25 @@ def download_audio(video_id, background=False):
     with lock:
         cached = get_cached_audio_path(video_id)
         if cached:
-            download_progress[video_id] = {'percent': 100, 'status': 'done'}
+            download_progress[video_id] = {
+                'percent': 100,
+                'status': 'done',
+                'state': 'Ready',
+                'message': 'Loaded from cache',
+                'speed': '',
+                'eta': '',
+                'total_bytes': os.path.getsize(cached)
+            }
             return cached
 
-        download_progress[video_id] = {'percent': 0, 'status': 'downloading'}
+        download_progress[video_id] = {
+            'percent': 0,
+            'status': 'starting',
+            'state': 'Connecting…',
+            'message': 'Connecting to YouTube…',
+            'speed': '',
+            'eta': ''
+        }
 
         url = f'https://music.youtube.com/watch?v={video_id}'
         out_tmpl = os.path.join(CACHE_DIR, f'{video_id}.%(ext)s')
@@ -370,6 +385,8 @@ def download_audio(video_id, background=False):
             '--format', 'bestaudio[ext=m4a]/bestaudio',
             '--js-runtimes', 'node',
             '--remote-components', 'ejs:github',
+            '--concurrent-fragments', '4',  # Download fragments concurrently for faster playback
+            '--buffer-size', '16K',
             '--output', out_tmpl,
             '--no-playlist',
             '--no-part',  # Write directly to destination so stream can read it immediately
@@ -391,19 +408,56 @@ def download_audio(video_id, background=False):
             for line in proc.stdout:
                 line = line.rstrip()
                 error_log.append(line)
-                # Parse: [download]  37.5% of    5.84MiB ...
-                m = re.search(r'\[download\]\s+(\d+\.?\d*)%', line)
                 
-                if video_id not in download_progress:
-                    download_progress[video_id] = {}
-                    
+                if '[youtube]' in line:
+                    if 'Downloading webpage' in line:
+                        download_progress[video_id]['state'] = 'Fetching info…'
+                        download_progress[video_id]['message'] = 'Fetching track metadata…'
+                    elif 'player API' in line:
+                        download_progress[video_id]['state'] = 'Getting stream…'
+                        download_progress[video_id]['message'] = 'Resolving audio stream…'
+                elif '[jsc:' in line:
+                    download_progress[video_id]['state'] = 'Solving…'
+                    download_progress[video_id]['message'] = 'Solving audio challenge…'
+                elif '[download] Destination:' in line:
+                    download_progress[video_id]['state'] = 'Starting…'
+                    download_progress[video_id]['message'] = 'Starting audio download…'
+                elif '[Fixup' in line:
+                    download_progress[video_id]['state'] = 'Finalizing…'
+                    download_progress[video_id]['message'] = 'Finalizing audio container…'
+                
+                # Parse: [download]  37.5% of    5.84MiB at    1.20MiB/s ETA 00:03
+                m = re.search(r'\[download\]\s+(\d+\.?\d*)%', line)
                 if m:
                     pct = float(m.group(1))
                     download_progress[video_id]['percent'] = pct
                     download_progress[video_id]['status'] = 'downloading'
                     
+                    sp_m = re.search(r'at\s+([~]?\d+\.?\d*(?:KiB|MiB|GiB|B)/s)', line)
+                    speed = sp_m.group(1) if sp_m else ''
+                    if speed:
+                        download_progress[video_id]['speed'] = speed
+                    
+                    eta_m = re.search(r'ETA\s+(\d+:\d+)', line)
+                    eta = eta_m.group(1) if eta_m else ''
+                    if eta:
+                        download_progress[video_id]['eta'] = eta
+                        
+                    short_spd = speed.replace('/s', '').strip()
+                    if speed:
+                        download_progress[video_id]['state'] = f"{int(pct)}% ({short_spd})"
+                    else:
+                        download_progress[video_id]['state'] = f"{int(pct)}%"
+                        
+                    msg_parts = [f"Downloading {int(pct)}%"]
+                    if speed:
+                        msg_parts.append(speed)
+                    if eta:
+                        msg_parts.append(f"ETA {eta}")
+                    download_progress[video_id]['message'] = " • ".join(msg_parts)
+                    
                 # Parse total size
-                if 'total_bytes' not in download_progress[video_id]:
+                if 'total_bytes' not in download_progress[video_id] or not download_progress[video_id]['total_bytes']:
                     sz_m = re.search(r'of\s+[~]?(\d+\.?\d*)(KiB|MiB|GiB|B)', line)
                     if sz_m:
                         val = float(sz_m.group(1))
@@ -412,14 +466,29 @@ def download_audio(video_id, background=False):
                         download_progress[video_id]['total_bytes'] = int(val * mult[unit])
             proc.wait(timeout=300)
             if proc.returncode != 0:
-                download_progress[video_id] = {'percent': 0, 'status': 'error'}
+                download_progress[video_id] = {
+                    'percent': 0,
+                    'status': 'error',
+                    'state': 'Failed',
+                    'message': 'Audio download failed'
+                }
                 print(f'[download] yt-dlp error for {video_id}')
                 print("\n".join(error_log))
                 return None
-            download_progress[video_id] = {'percent': 100, 'status': 'done'}
+            download_progress[video_id] = {
+                'percent': 100,
+                'status': 'done',
+                'state': 'Ready',
+                'message': 'Download complete'
+            }
             print(f'[download] Done: {video_id}')
         except Exception as e:
-            download_progress[video_id] = {'percent': 0, 'status': 'error'}
+            download_progress[video_id] = {
+                'percent': 0,
+                'status': 'error',
+                'state': 'Error',
+                'message': str(e)
+            }
             print(f'[download] Exception: {e}')
             return None
 
@@ -497,52 +566,80 @@ def status(video_id):
     """Return download progress as JSON. Polled by the frontend."""
     cached = get_cached_audio_path(video_id)
     if cached:
-        return json.dumps({'percent': 100, 'status': 'done'})
-    prog = download_progress.get(video_id, {'percent': 0, 'status': 'queued'})
-    return json.dumps(prog)
+        return json.dumps({
+            'percent': 100,
+            'status': 'done',
+            'state': 'Ready',
+            'message': 'Loaded from cache',
+            'cached': True,
+            'speed': '',
+            'eta': ''
+        }), 200, {'Content-Type': 'application/json'}
+        
+    prog = download_progress.get(video_id, {
+        'percent': 0,
+        'status': 'queued',
+        'state': 'Queued…',
+        'message': 'Queued…',
+        'cached': False,
+        'speed': '',
+        'eta': ''
+    })
+    return json.dumps(prog), 200, {'Content-Type': 'application/json'}
 
 @app.route('/preload/<video_id>')
 def preload(video_id):
     """Trigger background download of a video_id. Returns immediately."""
     cached = get_cached_audio_path(video_id)
     if cached:
-        return json.dumps({'status': 'done'})
+        return json.dumps({'status': 'done', 'percent': 100, 'cached': True}), 200, {'Content-Type': 'application/json'}
     if video_id not in download_progress:
         download_audio_bg(video_id)
-        download_progress[video_id] = {'percent': 0, 'status': 'queued'}
-    return json.dumps({'status': download_progress.get(video_id, {}).get('status', 'queued')})
+        download_progress[video_id] = {
+            'percent': 0,
+            'status': 'queued',
+            'state': 'Starting…',
+            'message': 'Starting…',
+            'cached': False
+        }
+    return json.dumps(download_progress.get(video_id, {'status': 'queued'})), 200, {'Content-Type': 'application/json'}
 
 
 @app.route('/stream/<video_id>')
 def stream(video_id):
     """
-    If the file is already cached locally, stream it using send_file.
-    If it's not cached yet, redirect the browser to the direct YouTube stream URL
-    so it plays instantly while the background preload task finishes caching it.
+    Stream audio to the browser in chunks as soon as initial bytes arrive,
+    allowing instant playback while yt-dlp finishes downloading in the background.
     """
     try:
-        # If file is fully downloaded, use standard send_file
+        # If file is already fully downloaded or cached, stream directly with conditional range support
         cached_path = get_cached_audio_path(video_id)
-        status_info = download_progress.get(video_id, {})
-        status = status_info.get('status')
-        total_size = status_info.get('total_bytes')
-
-        if cached_path and os.path.exists(cached_path) and status == 'done':
+        cur_status = download_progress.get(video_id, {}).get('status')
+        if cached_path and os.path.exists(cached_path) and (cur_status == 'done' or cur_status != 'downloading'):
             ext = cached_path.rsplit('.', 1)[-1]
             mime = {'m4a': 'audio/mp4', 'mp3': 'audio/mpeg', 'webm': 'audio/webm', 'ogg': 'audio/ogg'}.get(ext, 'audio/mp4')
             return send_file(cached_path, mimetype=mime, conditional=True)
 
-        # Wait until file starts downloading and we know its total size
+        if video_id not in download_progress:
+            download_audio_bg(video_id)
+
+        # Wait until file starts downloading and we have initial chunks & total size
         import time
-        for _ in range(60): # Wait up to 30s for yt-dlp to start outputting size
+        for _ in range(80): # Wait up to 16s (80 * 0.2s)
             cached_path = get_cached_audio_path(video_id)
             status_info = download_progress.get(video_id, {})
-            total_size = status_info.get('total_bytes')
-            if status_info.get('status') == 'error':
+            cur_status = status_info.get('status')
+            if cur_status == 'error':
                 return "Audio download failed internally", 500
-            if cached_path and os.path.exists(cached_path) and total_size:
-                break
-            time.sleep(0.5)
+            if cached_path and os.path.exists(cached_path):
+                file_size = os.path.getsize(cached_path)
+                total_size = status_info.get('total_bytes') or file_size
+                if cur_status == 'done':
+                    total_size = file_size
+                    break
+                if file_size > 32768 and total_size:
+                    break
+            time.sleep(0.2)
         else:
             return "Audio is still preparing...", 500
 
@@ -568,7 +665,7 @@ def stream(video_id):
                 f.seek(start)
                 pos = start
                 while pos <= end:
-                    chunk_size = min(8192, end - pos + 1)
+                    chunk_size = min(16384, end - pos + 1)
                     data = f.read(chunk_size)
                     if data:
                         yield data
@@ -577,7 +674,7 @@ def stream(video_id):
                         s = download_progress.get(video_id, {}).get('status')
                         if s in ('done', 'error'):
                             break
-                        time.sleep(0.1)
+                        time.sleep(0.04)
 
         headers = {
             'Content-Type': mime,
