@@ -1,0 +1,14 @@
+[Unit]
+Description=YouTube Music Proxy Service
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/murad/ytm_4s_proxy
+ExecStart=/bin/bash -c 'source venv/bin/activate && python app.py'
+Restart=on-failure
+StandardOutput=append:/home/murad/ytm_4s_proxy/proxy.log
+StandardError=append:/home/murad/ytm_4s_proxy/proxy.log
+
+[Install]
+WantedBy=default.target

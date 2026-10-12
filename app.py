@@ -10,12 +10,212 @@ import time
 
 app = Flask(__name__)
 
-# Initialize YTMusic with premium headers if available, otherwise unauthenticated
+from ytmusicapi.auth.oauth.credentials import OAuthCredentials
+
+# Initialize YTMusic with permanent OAuth if available, otherwise headers, otherwise unauthenticated
+oauth_file = 'oauth.json'
 auth_file = 'headers_auth.json'
-if os.path.exists(auth_file):
-    ytmusic = YTMusic(auth_file)
-else:
-    ytmusic = YTMusic()
+
+def get_client_credentials():
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    for f in os.listdir(base_dir):
+        if f.startswith('client_secret') and f.endswith('.json'):
+            try:
+                with open(os.path.join(base_dir, f), 'r') as cf:
+                    data = json.load(cf)
+                    cs = data.get('installed') or data.get('web')
+                    if cs and 'client_id' in cs and 'client_secret' in cs:
+                        return cs['client_id'], cs['client_secret']
+            except Exception as e:
+                print(f"[oauth] Error reading {f}: {e}")
+    return None, None
+
+def get_active_auth_file():
+    if os.path.exists(oauth_file):
+        return oauth_file
+    if os.path.exists(auth_file):
+        return auth_file
+    return None
+
+def init_ytmusic():
+    if os.path.exists(oauth_file):
+        client_id, client_secret = get_client_credentials()
+        if client_id and client_secret:
+            try:
+                creds = OAuthCredentials(client_id=client_id, client_secret=client_secret)
+                yt = YTMusic(oauth_file, oauth_credentials=creds)
+                yt.context['context']['client']['clientName'] = 'TVHTML5'
+                yt.context['context']['client']['clientVersion'] = '7.20240101.00.00'
+                return yt, 'oauth'
+            except Exception as e:
+                print(f"[auth] OAuth init failed: {e}")
+    if os.path.exists(auth_file):
+        try:
+            return YTMusic(auth_file), 'headers'
+        except Exception as e:
+            print(f"[auth] Headers init failed: {e}")
+    return YTMusic(), None
+
+ytmusic, _current_auth_type = init_ytmusic()
+yt_public = YTMusic()
+
+_auth_state = {
+    'logged_in': False,
+    'auth_type': _current_auth_type,
+    'last_checked': 0,
+    'error': None
+}
+
+def extract_tv_playlists(data):
+    results = []
+    def find_tiles(node):
+        if isinstance(node, dict):
+            if 'tileRenderer' in node:
+                yield node['tileRenderer']
+            for v in node.values():
+                yield from find_tiles(v)
+        elif isinstance(node, list):
+            for item in node:
+                yield from find_tiles(item)
+
+    for tile in find_tiles(data):
+        meta = tile.get('metadata', {}).get('tileMetadataRenderer', {})
+        runs = meta.get('title', {}).get('runs', [])
+        title = runs[0].get('text') if runs else None
+        
+        nav = runs[0].get('navigationEndpoint', {}) if runs else {}
+        browse_id = nav.get('browseEndpoint', {}).get('browseId', '')
+        if not browse_id:
+            browse_id = tile.get('onSelectCommand', {}).get('browseEndpoint', {}).get('browseId', '')
+            
+        playlist_id = browse_id
+        if playlist_id.startswith('VL'):
+            playlist_id = playlist_id[2:]
+            
+        thumbs = tile.get('header', {}).get('tileHeaderRenderer', {}).get('thumbnail', {}).get('thumbnails', [])
+        
+        subtitle = ''
+        lines = meta.get('lines', [])
+        if lines:
+            items = lines[0].get('lineRenderer', {}).get('items', [])
+            if items:
+                subtitle = items[0].get('lineItemRenderer', {}).get('text', {}).get('simpleText', '')
+        
+        if title and playlist_id:
+            results.append({
+                'title': title,
+                'playlistId': playlist_id,
+                'thumbnails': thumbs,
+                'count': subtitle
+            })
+    return results
+
+def extract_tv_playlist(data, default_title='Playlist'):
+    playlist_info = {
+        'title': default_title,
+        'tracks': [],
+        'thumbnails': []
+    }
+    def find_key(node, key):
+        if isinstance(node, dict):
+            if key in node:
+                yield node[key]
+            for v in node.values():
+                yield from find_key(v, key)
+        elif isinstance(node, list):
+            for item in node:
+                yield from find_key(item, key)
+
+    for em in find_key(data, 'entityMetadataRenderer'):
+        t = em.get('title', {})
+        t_text = t.get('simpleText') or (t.get('runs', [{}])[0].get('text') if t.get('runs') else None)
+        if t_text:
+            playlist_info['title'] = t_text
+        thumbs = em.get('thumbnail', {}).get('thumbnails', [])
+        if thumbs:
+            playlist_info['thumbnails'] = thumbs
+
+    for tile in find_key(data, 'tileRenderer'):
+        header = tile.get('header', {}).get('tileHeaderRenderer', {})
+        meta = tile.get('metadata', {}).get('tileMetadataRenderer', {})
+        
+        video_id = tile.get('contentId')
+        title = meta.get('title', {}).get('simpleText')
+        if not title:
+            runs = meta.get('title', {}).get('runs', [])
+            title = runs[0].get('text') if runs else 'Unknown'
+            
+        artist = meta.get('subtitle', {}).get('simpleText')
+        if not artist:
+            lines = meta.get('lines', [])
+            if lines:
+                artist_items = lines[0].get('lineRenderer', {}).get('items', [])
+                if artist_items:
+                    t_obj = artist_items[0].get('lineItemRenderer', {}).get('text', {})
+                    artist = t_obj.get('simpleText') or (t_obj.get('runs', [{}])[0].get('text') if t_obj.get('runs') else 'Unknown')
+        
+        duration = None
+        for ov in header.get('thumbnailOverlays', []):
+            time_txt = ov.get('thumbnailOverlayTimeStatusRenderer', {}).get('text', {}).get('simpleText')
+            if time_txt:
+                duration = time_txt
+                break
+                
+        thumbs = header.get('thumbnail', {}).get('thumbnails', [])
+        
+        if video_id and title:
+            playlist_info['tracks'].append({
+                'videoId': video_id,
+                'title': title,
+                'artists': [{'name': artist or 'Unknown'}],
+                'duration': duration or '',
+                'thumbnails': thumbs
+            })
+    return playlist_info
+
+def check_yt_session_valid():
+    """Verify if YouTube Music backend actually considers this session authenticated."""
+    if not get_active_auth_file():
+        return False
+    try:
+        response = ytmusic._send_request('browse', {'browseId': 'FEmusic_liked_playlists'})
+        for stp in response.get('responseContext', {}).get('serviceTrackingParams', []):
+            for param in stp.get('params', []):
+                if param.get('key') == 'logged_in':
+                    return param.get('value') == '1'
+        return False
+    except Exception as e:
+        print(f"[auth] Verification error: {e}")
+        return False
+
+def verify_auth_background():
+    """Verify auth in background to avoid blocking server start or requests."""
+    global _auth_state
+    f = get_active_auth_file()
+    if not f:
+        _auth_state['logged_in'] = False
+        _auth_state['auth_type'] = None
+        _auth_state['last_checked'] = time.time()
+        _auth_state['error'] = 'No credentials configured'
+        return
+    is_valid = check_yt_session_valid()
+    _auth_state['logged_in'] = is_valid
+    _auth_state['auth_type'] = 'oauth' if f == oauth_file else 'headers'
+    _auth_state['error'] = None if is_valid else 'Session expired or invalid (YouTube returned guest mode)'
+    _auth_state['last_checked'] = time.time()
+    print(f"[auth] Checked YouTube auth state: logged_in={is_valid} (type={_auth_state['auth_type']})")
+
+# Background check on startup
+threading.Thread(target=verify_auth_background, daemon=True).start()
+
+def is_user_logged_in():
+    """Return cached auth status, triggering background refresh if older than 10 mins."""
+    if not get_active_auth_file():
+        return False
+    now = time.time()
+    if now - _auth_state['last_checked'] > 600:
+        threading.Thread(target=verify_auth_background, daemon=True).start()
+    return bool(_auth_state['logged_in'])
 
 import shutil
 NODE_PATH = shutil.which('node') or shutil.which('nodejs') or 'node'
@@ -86,7 +286,38 @@ def inject_image_proxy():
         if not url: return ''
         import urllib.parse
         return url_for('proxy_image_route', url=url)
-    return dict(proxy_image=proxy_image)
+    
+    logged_in = is_user_logged_in()
+    msg_param = request.args.get('msg', '')
+    
+    banner_message = None
+    banner_type = None
+    if msg_param == 'logged_in':
+        banner_message = "Successfully logged in to YouTube Music."
+        banner_type = "success"
+    elif msg_param == 'logged_out':
+        banner_message = "You have logged out. Proxy is in guest mode."
+        banner_type = "info"
+    elif msg_param == 'auth_required':
+        banner_message = "Please log in to access your library."
+        banner_type = "warning"
+    elif msg_param == 'session_expired':
+        banner_message = "Your session expired. Please paste fresh headers from music.youtube.com."
+        banner_type = "warning"
+        
+    return dict(
+        proxy_image=proxy_image,
+        is_logged_in=logged_in,
+        auth_type=_auth_state.get('auth_type'),
+        auth_error=_auth_state.get('error'),
+        banner_message=banner_message,
+        banner_type=banner_type
+    )
+
+@app.after_request
+def add_auth_header(response):
+    response.headers['X-Auth-Status'] = 'logged_in' if is_user_logged_in() else 'not_logged_in'
+    return response
 
 # Track files being downloaded (to avoid double-downloading)
 download_locks = {}
@@ -144,8 +375,6 @@ def download_audio(video_id, background=False):
             '--no-part',  # Write directly to destination so stream can read it immediately
             '--newline',  # Force one progress line per update (parseable)
         ]
-        if os.path.exists('cookies.txt'):
-            cmd += ['--cookies', 'cookies.txt']
         cmd.append(url)
 
         print(f'[download] Starting: {video_id}')
@@ -238,7 +467,7 @@ def search():
         return redirect(url_for('index'))
     
     try:
-        results = get_cached_metadata(f"search_{query}", lambda: ytmusic.search(query, filter='songs'))
+        results = get_cached_metadata(f"search_{query}", lambda: yt_public.search(query, filter='songs'))
     except Exception as e:
         results = []
         print(f"Search error: {e}")
@@ -367,31 +596,94 @@ def stream(video_id):
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    global ytmusic
+    global ytmusic, _auth_state
     if request.method == 'POST':
         headers = request.form.get('headers')
         if headers:
             try:
                 setup(filepath='headers_auth.json', headers_raw=headers)
                 ytmusic = YTMusic('headers_auth.json')
-                return redirect(url_for('library'))
+                _auth_state['logged_in'] = True
+                _auth_state['last_checked'] = time.time()
+                _auth_state['error'] = None
+                return redirect(url_for('index', msg='logged_in'))
             except Exception as e:
                 return f"Error setting up authentication: {e}", 400
     return render_template('login.html')
 
+@app.route('/logout', methods=['GET', 'POST'])
+def logout():
+    global ytmusic, _auth_state
+    for f in [oauth_file, auth_file]:
+        if os.path.exists(f):
+            try:
+                os.remove(f)
+            except Exception as e:
+                print(f"Error removing {f}: {e}")
+    ytmusic = YTMusic()
+    _auth_state['logged_in'] = False
+    _auth_state['auth_type'] = None
+    _auth_state['last_checked'] = time.time()
+    _auth_state['error'] = 'Logged out'
+    return redirect(url_for('index', msg='logged_out'))
+
+@app.route('/api/auth/status')
+def api_auth_status():
+    return json.dumps({
+        'logged_in': is_user_logged_in(),
+        'auth_type': _auth_state.get('auth_type'),
+        'error': _auth_state.get('error')
+    }), 200, {'Content-Type': 'application/json'}
+
 @app.route('/library')
 def library():
+    global _auth_state
+    if not is_user_logged_in():
+        return redirect(url_for('login', msg='session_expired' if get_active_auth_file() else 'auth_required'))
     try:
-        playlists = ytmusic.get_library_playlists()
+        if _auth_state.get('auth_type') == 'oauth':
+            resp = ytmusic._send_request('browse', {'browseId': 'FEmusic_liked_playlists'})
+            playlists = extract_tv_playlists(resp)
+        else:
+            playlists = ytmusic.get_library_playlists()
+
+        # If playlists returned empty, double-check if YouTube actually considered this session logged in
+        if not playlists and not check_yt_session_valid():
+            _auth_state['logged_in'] = False
+            _auth_state['last_checked'] = time.time()
+            _auth_state['error'] = 'Session expired or rejected by YouTube'
+            return redirect(url_for('login', msg='session_expired'))
+            
+        # Ensure Liked Music is present in library list
+        has_liked = any(p.get('playlistId') == 'LM' for p in playlists)
+        if not has_liked:
+            playlists.insert(0, {
+                'playlistId': 'LM',
+                'title': 'Liked Music',
+                'thumbnails': [],
+                'count': 'Auto-playlist'
+            })
+
+        _auth_state['logged_in'] = True
+        _auth_state['last_checked'] = time.time()
+        _auth_state['error'] = None
         return render_template('library.html', playlists=playlists)
     except Exception as e:
         print(f"Auth error (redirecting to login): {str(e)}")
-        return redirect(url_for('login'))
+        _auth_state['logged_in'] = False
+        _auth_state['last_checked'] = time.time()
+        _auth_state['error'] = str(e)
+        return redirect(url_for('login', msg='session_expired'))
 
 @app.route('/playlist/<playlist_id>')
 def playlist(playlist_id):
     try:
-        pl = ytmusic.get_playlist(playlist_id)
+        if _auth_state.get('auth_type') == 'oauth':
+            browse_id = playlist_id if playlist_id.startswith('VL') else f'VL{playlist_id}'
+            resp = ytmusic._send_request('browse', {'browseId': browse_id})
+            pl = extract_tv_playlist(resp, default_title='Liked Music' if playlist_id == 'LM' else 'Playlist')
+        else:
+            pl = ytmusic.get_playlist(playlist_id)
         return render_template('playlist.html', playlist=pl)
     except Exception as e:
         return f"Error loading playlist: {str(e)}", 500

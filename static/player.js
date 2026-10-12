@@ -14,11 +14,11 @@
 
     // ---- Playback state ----
     audio.addEventListener('play', function() {
-        btnPlayPause.textContent = '\u23f8';
+        document.getElementById('play-pause-icon').src = '/static/pause.svg';
         progressBar.style.background = '#f00';
     });
     audio.addEventListener('pause', function() {
-        btnPlayPause.textContent = '\u25b6';
+        document.getElementById('play-pause-icon').src = '/static/play.svg';
     });
 
     // Buffering indicator
@@ -121,6 +121,58 @@
         }
     }
 
+    // ---- Auth notification & status management ----
+    var authNotification = document.getElementById('auth-notification');
+    var btnDismissNotification = document.getElementById('btn-dismiss-notification');
+    var navAuthStatus = document.getElementById('nav-auth-status');
+
+    function dismissNotification() {
+        if (authNotification && authNotification.className.indexOf('is-dismissed') === -1) {
+            authNotification.className += ' is-dismissed';
+            try {
+                sessionStorage.setItem('auth_notif_dismissed', '1');
+            } catch(e) {}
+        }
+    }
+
+    function showNotification() {
+        if (authNotification) {
+            authNotification.className = authNotification.className.replace(/\bis-dismissed\b/g, '').trim();
+        }
+    }
+
+    if (btnDismissNotification) {
+        btnDismissNotification.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            dismissNotification();
+        });
+    }
+
+    // Auto-dismiss positive notifications / flash banners after 4.5 seconds
+    if (authNotification) {
+        var notifClass = authNotification.className;
+        if (notifClass.indexOf('is-online') > -1 || notifClass.indexOf('banner-flash') > -1) {
+            setTimeout(function() {
+                dismissNotification();
+            }, 4500);
+        } else if (notifClass.indexOf('is-offline') > -1) {
+            try {
+                if (sessionStorage.getItem('auth_notif_dismissed') === '1') {
+                    authNotification.className += ' is-dismissed';
+                }
+            } catch(e) {}
+        }
+    }
+
+    if (navAuthStatus) {
+        navAuthStatus.addEventListener('click', function() {
+            if (authNotification && authNotification.className.indexOf('is-dismissed') > -1) {
+                showNotification();
+            }
+        });
+    }
+
     // ---- AJAX (PJAX) navigation ----
     function loadPage(url, pushState) {
         var xhr = new XMLHttpRequest();
@@ -132,6 +184,22 @@
                 queue = buildQueueFromPage();
                 if (pushState !== false) {
                     window.history.pushState(null, '', url);
+                }
+
+                // Sync auth status badge from response header
+                var authHeader = xhr.getResponseHeader('X-Auth-Status');
+                if (authHeader && navAuthStatus) {
+                    if (authHeader === 'logged_in') {
+                        navAuthStatus.className = 'nav-auth-badge badge-online';
+                        navAuthStatus.setAttribute('href', '/settings');
+                        navAuthStatus.setAttribute('title', 'Logged in to YouTube Music');
+                        navAuthStatus.innerHTML = '<span class="auth-dot"></span><span class="auth-label"><span class="auth-label-full">Logged In</span><span class="auth-label-short">In</span></span>';
+                    } else {
+                        navAuthStatus.className = 'nav-auth-badge badge-offline';
+                        navAuthStatus.setAttribute('href', '/login');
+                        navAuthStatus.setAttribute('title', 'Not logged in - Tap to connect');
+                        navAuthStatus.innerHTML = '<span class="auth-dot"></span><span class="auth-label"><span class="auth-label-full">Not Logged In</span><span class="auth-label-short">Login</span></span>';
+                    }
                 }
             }
         };

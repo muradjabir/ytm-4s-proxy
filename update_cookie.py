@@ -1,0 +1,16 @@
+import json
+
+cookie_string = """PREF=f6=80&has_user_changed_default_autoplay_mode=true&repeat=NONE&autoplay=false&tz=Asia.Colombo&f4=4000000; SIDCC=AKEyXzXKDAsUosBxDHjhLBv4lzFPazLNozbpt0aX2iNFRPdshKajBRKvk07Okib82Fg_MEgzEA; VISITOR_INFO1_LIVE=EtFpf1GFeRU; VISITOR_PRIVACY_METADATA=CgJMSxIEGgAgTg%3D%3D; __Secure-1PSIDCC=AKEyXzUwcVt-nVeWoFN_4-A3NmMI6Vzr05S3vkzlXePn1jFY6FQNZOuxj1k1sYmxuAZjL01mjw; __Secure-3PSIDCC=AKEyXzWfwPadQRsrsCJi6z5NQmCUzwbMlx9UHTC3K7oGlXC19Y0csfTe6HYre565gDiaZv2cHZY; __Secure-ROLLOUT_TOKEN=COmq6PzloNeepQEQoe_BtvCJlwMYyO3s-ceUlwM%3D; __Secure-YNID=22.YT=kxctbax-o_jTluFyEBqztC4JlOSwplr1OhaZa5mB0C_9JDtLH0UA9rimwPFZcKwp_CBBfHqaHhWS7qEnVvAy50rVmhfMG-blKcoy6WJMuTFYfHC9XLD432JHhdRaCY9gLf_JyL5udWHXqIOAImBkMkznsQ5oo6lq00EUCJ-24IyDhBfHt1va4KWPWbk5munkGgBY1jJR0sNjIw2e-M_P2H68IpvEL2snetVbGIzPDs5XvMVf6JQGyxctJ4UvebB2BXVcWmesRCdzyKpr-qAy7maI-xfMZHL0LriJF-4JV3DTqONdVfWwJEfdmlwdHI33kOQBLbCzavyb4UBDvi9Mhw; __Secure-1PSIDTS=sidts-CjQBkldj__o_GjSUmSptWN1TD15Jd1pxyBASx0D2jHlVU5n110SpPaI61Deg5OTqOtMXi1iGEAA; __Secure-3PSIDTS=sidts-CjQBkldj__o_GjSUmSptWN1TD15Jd1pxyBASx0D2jHlVU5n110SpPaI61Deg5OTqOtMXi1iGEAA; YSC=fV_JdGdzURo; __Secure-ROLLOUT_TOKEN=COmq6PzloNeepQEQoe_BtvCJlwMY6p_W0_OJlwM%3D; LOGIN_INFO=AFmmF2swRQIhALxx2IHBSwtAVYzVQ7QHoi-BXhluz-zptYH1YDYuwLaWAiBzeRhiLsEW5FdD_VU2dAri_vC0rqUKfDcL2TE62s9J5Q:QUQ3MjNmd2xiS0ZidE8wZEhUQ1J0WXp4Y2RnazVieHp6ZEVfcGVOMDN6ejFTNnMwSDl1X0NoT0d2M0VlWlJ5c05leGhCS2prd3hRVG04VmZmR3NBZEc2SXNmMXFkTTg2Z3VXMjNxV1VvVm9fVEd3M3AtZ1BoR1U3dFB3WHNhQkk0TUZPdldNYXVLMGhYVTlEamwwUU8wYWxMU1czdnJCX2RR; APISID=hVoXtuSLbGwEXgYr/AQfoM9LgjuR48ySmz; HSID=AGRwbTlYSCdP1iS0D; SAPISID=c-55-5mAiWCr92NW/AByLrAEWfDeALowTL; SID=g.a000CwnqzsiDMRo3xpeRZXlFw4RLhZZKwdNcBV6xCnSi_8t0jB33ROqWBv2ZD_hZpx3f8ljNRAACgYKAWASARASFQHGX2MiK3N1pvDk1tKpa5dpU7bMKxoVAUF8yKoiRbmX7t-EGFh3D2jgapPe0076; SSID=A98JDA3GihS9UQ-Yp; __Secure-1PAPISID=c-55-5mAiWCr92NW/AByLrAEWfDeALowTL; __Secure-1PSID=g.a000CwnqzsiDMRo3xpeRZXlFw4RLhZZKwdNcBV6xCnSi_8t0jB33U169ITF7sZLmnMLpHl0NPgACgYKAUUSARASFQHGX2Mi76vQnMBFwZsCrbWUWFyNwRoVAUF8yKr5BJEGyVNWSddFfoY9PgHw0076; __Secure-3PAPISID=c-55-5mAiWCr92NW/AByLrAEWfDeALowTL; __Secure-3PSID=g.a000CwnqzsiDMRo3xpeRZXlFw4RLhZZKwdNcBV6xCnSi_8t0jB33HG3vkBsCS36Ec3L90zdL8gACgYKAVESARASFQHGX2MiH3jBYGLwWfsyfnYabYvP1BoVAUF8yKpFw7f--3rsPUobKZgJOced0076; _gcl_au=1.1.1287825410.1790193696"""
+
+try:
+    with open('headers_auth.json', 'r') as f:
+        headers = json.load(f)
+except Exception:
+    headers = {}
+
+headers['Cookie'] = cookie_string
+
+with open('headers_auth.json', 'w') as f:
+    json.dump(headers, f, indent=2)
+
+print("Updated headers_auth.json with the new cookie!")

@@ -20,7 +20,239 @@ body {
 .nav-left {
     display: table-cell;
     vertical-align: middle;
-    width: 130px;
+    width: 75px;
+}
+
+.nav-right {
+    display: table-cell;
+    vertical-align: middle;
+    text-align: right;
+    white-space: nowrap;
+}
+
+.nav-link-item {
+    color: #fff;
+    text-decoration: none;
+    font-size: 14px;
+    padding-right: 10px;
+    vertical-align: middle;
+    display: inline-block;
+}
+
+.nav-link-item:hover {
+    color: #ddd;
+}
+
+.nav-settings-icon {
+    padding-right: 4px;
+}
+
+/* Auth Status Badge in Navbar */
+.nav-auth-badge {
+    display: inline-block;
+    vertical-align: middle;
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+    text-decoration: none;
+    margin-right: 10px;
+    transition: background-color 0.2s, border-color 0.2s;
+    line-height: 1.2;
+}
+
+.nav-auth-badge.badge-online {
+    background: rgba(16, 185, 129, 0.12);
+    color: #34d399;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.nav-auth-badge.badge-online:hover {
+    background: rgba(16, 185, 129, 0.22);
+}
+
+.nav-auth-badge.badge-offline {
+    background: rgba(245, 158, 11, 0.14);
+    color: #fbbf24;
+    border: 1px solid rgba(245, 158, 11, 0.35);
+}
+
+.nav-auth-badge.badge-offline:hover {
+    background: rgba(245, 158, 11, 0.24);
+}
+
+/* Auth Status Dots */
+.auth-dot {
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    margin-right: 4px;
+    vertical-align: middle;
+}
+
+.badge-online .auth-dot,
+.dot-green {
+    background-color: #10b981;
+    box-shadow: 0 0 6px rgba(16, 185, 129, 0.8);
+}
+
+.badge-offline .auth-dot,
+.dot-red {
+    background-color: #f59e0b;
+    box-shadow: 0 0 6px rgba(245, 158, 11, 0.8);
+}
+
+/* Auth & Flash Notification Banner */
+.auth-notification {
+    background: #161616;
+    border-bottom: 1px solid #2a2a2a;
+    padding: 10px 14px;
+    box-sizing: border-box;
+    transition: max-height 0.3s ease, opacity 0.3s ease, padding 0.3s ease;
+    overflow: hidden;
+    position: relative;
+    max-height: 80px;
+    opacity: 1;
+}
+
+.auth-notification.is-dismissed {
+    max-height: 0;
+    opacity: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    border-bottom: none;
+    pointer-events: none;
+}
+
+.notification-inner {
+    display: table;
+    width: 100%;
+}
+
+.status-indicator-dot {
+    display: table-cell;
+    width: 14px;
+    vertical-align: middle;
+}
+
+.status-indicator-dot::before {
+    content: "";
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+}
+
+.auth-notification.is-online .status-indicator-dot::before {
+    background: #10b981;
+    box-shadow: 0 0 6px #10b981;
+}
+
+.auth-notification.is-offline .status-indicator-dot::before {
+    background: #f59e0b;
+    box-shadow: 0 0 6px #f59e0b;
+}
+
+.auth-notification.is-success .status-indicator-dot::before {
+    background: #10b981;
+    box-shadow: 0 0 6px #10b981;
+}
+
+.auth-notification.is-warning .status-indicator-dot::before {
+    background: #f59e0b;
+    box-shadow: 0 0 6px #f59e0b;
+}
+
+.auth-notification.is-info .status-indicator-dot::before {
+    background: #3b82f6;
+    box-shadow: 0 0 6px #3b82f6;
+}
+
+.auth-notification.is-online {
+    background: linear-gradient(90deg, rgba(16, 185, 129, 0.12) 0%, #161616 100%);
+    border-left: 3px solid #10b981;
+}
+
+.auth-notification.is-offline {
+    background: linear-gradient(90deg, rgba(245, 158, 11, 0.14) 0%, #161616 100%);
+    border-left: 3px solid #f59e0b;
+}
+
+.auth-notification.is-success {
+    background: linear-gradient(90deg, rgba(16, 185, 129, 0.2) 0%, #161616 100%);
+    border-left: 3px solid #10b981;
+}
+
+.auth-notification.is-warning {
+    background: linear-gradient(90deg, rgba(245, 158, 11, 0.2) 0%, #161616 100%);
+    border-left: 3px solid #f59e0b;
+}
+
+.auth-notification.is-info {
+    background: linear-gradient(90deg, rgba(59, 130, 246, 0.2) 0%, #161616 100%);
+    border-left: 3px solid #3b82f6;
+}
+
+.notification-text {
+    display: table-cell;
+    vertical-align: middle;
+    padding-left: 8px;
+    font-size: 13px;
+    line-height: 1.3;
+}
+
+.notification-title {
+    font-weight: 600;
+    color: #fff;
+    margin-right: 6px;
+}
+
+.notification-desc {
+    color: #aaa;
+}
+
+.notification-link {
+    color: #fff;
+    font-weight: 600;
+    text-decoration: underline;
+}
+
+.notification-link:hover {
+    color: #38bdf8;
+}
+
+.notification-dismiss {
+    display: table-cell;
+    width: 24px;
+    vertical-align: middle;
+    text-align: right;
+    background: transparent;
+    border: none;
+    color: #888;
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0 4px;
+}
+
+.notification-dismiss:hover {
+    color: #fff;
+}
+
+@media (max-width: 380px) {
+    .auth-label-full { display: none; }
+    .auth-label-short { display: inline; }
+    .nav-left { width: 70px; }
+    .nav-auth-badge { padding: 3px 5px; margin-right: 6px; font-size: 11px; }
+    .nav-link-item { font-size: 13px; padding-right: 6px; }
+    .notification-text { font-size: 12px; }
+    .notification-desc { display: block; font-size: 11px; margin-top: 2px; }
+}
+
+@media (min-width: 381px) {
+    .auth-label-full { display: inline; }
+    .auth-label-short { display: none; }
 }
 
 .brand {

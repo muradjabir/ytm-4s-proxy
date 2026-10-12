@@ -10,3 +10,6 @@ oauth.json
 *.log
 *.part
 *.ytdl
+client_secret*.json
+raw_headers.txt
+*.bak

@@ -3,7 +3,44 @@
 <h2 class="section-title">Settings</h2>
 
 <div style="padding: 15px; color: #fff;">
-    <h3 style="margin-top: 0;">Cache Usage</h3>
+    <h3 style="margin-top: 0;">Account Status</h3>
+    <div class="settings-card auth-card" style="background: #121212; border: 1px solid #262626; border-radius: 8px; padding: 14px; margin-bottom: 24px;">
+        <div style="margin-bottom: 12px;">
+            <div style="font-weight: 600; font-size: 15px;">
+                <span class="auth-dot {% if is_logged_in %}dot-green{% else %}dot-red{% endif %}"></span>
+                {% if is_logged_in %}Logged In to YouTube Music{% else %}Not Logged In (Guest Mode){% endif %}
+            </div>
+            <div style="color: #aaa; font-size: 13px; margin-top: 4px;">
+                {% if is_logged_in %}
+                    {% if auth_type == 'oauth' %}
+                        Connected via permanent Google OAuth (<code style="color: #60a5fa;">oauth.json</code>). Tokens auto-refresh automatically.
+                    {% else %}
+                        Active credentials loaded from <code style="color: #60a5fa;">headers_auth.json</code>. Library access enabled.
+                    {% endif %}
+                {% else %}
+                    No active account session. Library and personal mixes require login.
+                {% endif %}
+            </div>
+        </div>
+        <div style="display: table; width: 100%;">
+            {% if is_logged_in %}
+                <div style="display: table-cell; width: 50%; padding-right: 6px;">
+                    <a href="/login" style="display: block; text-align: center; text-decoration: none; padding: 10px; background: #262626; color: #fff; border-radius: 4px; font-size: 14px; font-weight: 500;">{% if auth_type == 'oauth' %}Account Details{% else %}Update Headers{% endif %}</a>
+                </div>
+                <div style="display: table-cell; width: 50%; padding-left: 6px;">
+                    <form action="/logout" method="POST" style="margin: 0;">
+                        <button type="submit" style="width: 100%; padding: 10px; background: #3b1818; color: #f87171; border: 1px solid #7f1d1d; border-radius: 4px; font-size: 14px; font-weight: 600; cursor: pointer;">Log Out</button>
+                    </form>
+                </div>
+            {% else %}
+                <div style="display: table-cell; width: 100%;">
+                    <a href="/login" style="display: block; text-align: center; text-decoration: none; padding: 11px; background: #fff; color: #000; border-radius: 4px; font-size: 14px; font-weight: 600;">Log In</a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <h3 style="margin-top: 20px;">Cache Usage</h3>
     <ul style="list-style: none; padding: 0; line-height: 1.8;">
         <li><strong>Audio Cache:</strong> {{ audio_size }}</li>
         <li><strong>Image Cache:</strong> {{ image_size }}</li>
