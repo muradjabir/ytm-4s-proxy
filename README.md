@@ -54,24 +54,24 @@ Apple places severe limitations on background audio in iOS 9. You have two ways 
 
 ---
 
-## 🔑 Authentication (Obtaining Cookies/Headers)
+## 🔑 Authentication & Cookie Sync (Mac Browser & yt-dlp)
 
-To access your personal library, playlists, and age-restricted/premium songs, you must authenticate the proxy with your YouTube Music account. Since YouTube session cookies expire periodically, you may need to repeat this process if you get logged out or encounter 403 Forbidden errors.
+Since YouTube periodically rotates and invalidates cookies, and requires cookies for downloading age-restricted or copyright-protected audio streams via `yt-dlp`, you can sync fresh cookies from your Mac browser directly to the Ubuntu server at any time.
 
-**Step-by-Step Instructions:**
+### Method 1: Automatic Mac Browser Extension (Recommended)
+1. In your Mac browser (Chrome / Brave / Edge / Arc), download the extension from `http://<SERVER_IP>:5000/extension/download` or use the folder in `extension/`.
+2. Open `chrome://extensions` (or `brave://extensions`), toggle on **Developer mode**, and click **Load unpacked**.
+3. Select the unzipped `extension/` folder.
+4. Click the extension icon in your browser toolbar, enter your Ubuntu server URL (`http://<SERVER_IP>:5000`), and click **Sync YouTube Cookies Now**.
+5. Enable **Auto-sync on YouTube visit** to automatically refresh cookies in the background whenever you browse YouTube Music!
 
-1. Open your desktop web browser (Chrome, Firefox, Edge, or Safari).
-2. Go to [music.youtube.com](https://music.youtube.com) and ensure you are logged in.
-3. Open the **Developer Tools** (Press `F12` or `Ctrl+Shift+I`).
-4. Navigate to the **Network** tab.
-5. Click on the **"Fetch/XHR"** filter button at the top of the Network tab. *(This is crucial—you must copy headers from an API request, not an image request!)*
-6. Refresh the page (`F5`) or click on a playlist to generate some network traffic.
-7. Look for a request named **`browse`** or **`next`** in the list and click on it.
-8. Scroll down to the **"Request Headers"** section.
-9. Right-click anywhere in the Request Headers section and click **"Copy Request Headers"** (or manually select and copy all the text in that section).
-10. Open the proxy server URL in a browser: `http://<YOUR-SERVER-IP>:5000/login`
-11. Paste the copied headers into the text box and click "Connect Account".
+### Method 2: Direct Upload in Settings
+1. On your Mac or iPhone, open `http://<SERVER_IP>:5000/settings`.
+2. Under **YouTube Browser Cookie Sync**, drop your exported `cookies.txt` or paste raw cookies/headers and click **Save**.
 
-The server will automatically generate the `headers_auth.json` file and redirect you to your library!
+### Method 3: Mac Terminal Script
+Run from your Mac terminal:
+```bash
+./sync_cookies_mac.sh http://192.168.2.2:5000 chrome
+```
 
-*(Note: If you continue to experience playback errors on certain tracks, ensure that your `cookies.txt` file is also exported using a browser extension like "Get cookies.txt LOCALLY" and placed in the project root directory alongside `app.py`, as `yt-dlp` relies on standard cookie formatting for some restricted tracks).*

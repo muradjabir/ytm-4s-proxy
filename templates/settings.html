@@ -40,6 +40,47 @@
         </div>
     </div>
 
+    <h3 style="margin-top: 24px;">YouTube Browser Cookie Sync</h3>
+    <div class="settings-card" style="background: #121212; border: 1px solid #262626; border-radius: 8px; padding: 14px; margin-bottom: 24px;">
+        <div style="margin-bottom: 12px;">
+            <div style="font-weight: 600; font-size: 15px;">
+                <span class="auth-dot {% if cookies_status.has_essential %}dot-green{% else %}dot-red{% endif %}"></span>
+                {% if cookies_status.has_essential %}
+                    Cookies Active for yt-dlp ({{ cookies_status.count }} cookies)
+                {% else %}
+                    Cookies Missing or Expired for yt-dlp
+                {% endif %}
+            </div>
+            <div style="color: #aaa; font-size: 13px; margin-top: 4px; line-height: 1.4;">
+                Last synced: <strong style="color: #fff;">{{ cookies_status.last_modified_str }}</strong>
+                {% if cookies_status.essential_found %}
+                    <br><span style="color: #60a5fa; font-size: 12px;">Key cookies: {{ cookies_status.essential_found|join(', ') }}</span>
+                {% endif %}
+            </div>
+        </div>
+
+        <div style="border-top: 1px solid #222; padding-top: 12px; margin-top: 10px;">
+            <div style="font-weight: 600; font-size: 13px; margin-bottom: 6px; color: #eee;">Option 1: Mac Browser Extension (Automatic)</div>
+            <p style="color: #999; font-size: 12px; margin-top: 0; margin-bottom: 10px; line-height: 1.4;">
+                Install our lightweight extension on your Mac (Chrome / Brave / Edge) to sync fresh YouTube cookies automatically in the background or on 1-click.
+            </p>
+            <a href="/extension/download" style="display: block; text-align: center; text-decoration: none; padding: 9px; background: #2563eb; color: #fff; border-radius: 4px; font-size: 13px; font-weight: 600; margin-bottom: 14px;">Download Extension (.zip)</a>
+
+            <div style="font-weight: 600; font-size: 13px; margin-bottom: 6px; color: #eee;">Option 2: Direct Upload or Paste</div>
+            <form action="/api/cookies/upload" method="POST" enctype="multipart/form-data" style="margin-bottom: 10px;">
+                <label style="display: block; font-size: 12px; color: #aaa; margin-bottom: 4px;">Upload cookies.txt file:</label>
+                <input type="file" name="file" accept=".txt" style="display: block; width: 100%; color: #ccc; font-size: 12px; margin-bottom: 8px;">
+                <button type="submit" style="width: 100%; padding: 8px; background: #262626; color: #fff; border: 1px solid #444; border-radius: 4px; font-size: 13px; font-weight: 500; cursor: pointer;">Upload cookies.txt</button>
+            </form>
+
+            <form action="/api/cookies/upload" method="POST">
+                <label style="display: block; font-size: 12px; color: #aaa; margin-bottom: 4px;">Or paste raw cookies / Netscape text:</label>
+                <textarea name="cookies_text" rows="3" placeholder="Paste Netscape cookies or Cookie header here..." style="width: 100%; box-sizing: border-box; background: #181818; color: #fff; border: 1px solid #333; padding: 6px 8px; border-radius: 4px; font-size: 12px; font-family: monospace; margin-bottom: 8px;"></textarea>
+                <button type="submit" style="width: 100%; padding: 8px; background: #fff; color: #000; border: none; border-radius: 4px; font-size: 13px; font-weight: 600; cursor: pointer;">Save Pasted Cookies</button>
+            </form>
+        </div>
+    </div>
+
     <h3 style="margin-top: 20px;">Cache Usage</h3>
     <ul style="list-style: none; padding: 0; line-height: 1.8;">
         <li><strong>Audio Cache:</strong> {{ audio_size }}</li>

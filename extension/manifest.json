@@ -1,0 +1,27 @@
+{
+  "manifest_version": 3,
+  "name": "YTM Proxy Cookie Sync",
+  "version": "1.0.0",
+  "description": "Automatically sync YouTube cookies from your Mac browser to the YTM 4S Proxy server",
+  "icons": {
+    "48": "icon.png",
+    "128": "icon.png"
+  },
+  "permissions": [
+    "cookies",
+    "storage"
+  ],
+  "host_permissions": [
+    "*://*.youtube.com/*",
+    "*://*.google.com/*",
+    "http://*/*",
+    "https://*/*"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Sync YTM Cookies"
+  },
+  "background": {
+    "service_worker": "background.js"
+  }
+}
