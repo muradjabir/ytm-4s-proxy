@@ -1,26 +1,117 @@
-/* style.css */
-body {
-    font-family: "Roboto", -apple-system, Helvetica, Arial, sans-serif;
-    margin: 0;
-    padding: 0;
-    background-color: #030303;
-    color: #ffffff;
-    -webkit-font-smoothing: antialiased;
+/* ==========================================================================
+   YouTube Music Proxy - iOS 9 Safari Light Theme (Optimized for iPhone 4s)
+   ========================================================================== */
+
+* {
+    -webkit-box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
 }
 
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #efeff4;
+    color: #000000;
+    -webkit-font-smoothing: antialiased;
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+/* --------------------------------------------------------------------------
+   Header & Navigation (iOS Light Frosted Bar)
+   -------------------------------------------------------------------------- */
 .navbar {
-    background-color: #030303;
-    padding: 8px 12px;
-    border-bottom: 1px solid #1f1f1f;
-    display: table; /* Fake flexbox for older browsers */
+    background-color: #f7f7f8;
+    border-bottom: 1px solid #c8c7cc;
+    padding: 6px 8px;
+    display: table;
     width: 100%;
-    box-sizing: border-box;
+    position: sticky;
+    top: 0;
+    z-index: 999;
 }
 
 .nav-left {
     display: table-cell;
     vertical-align: middle;
-    width: 75px;
+    width: 72px;
+    white-space: nowrap;
+}
+
+.brand {
+    color: #000000;
+    text-decoration: none;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: -0.4px;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+.brand-icon {
+    vertical-align: middle;
+    margin-right: 4px;
+    display: inline-block;
+}
+
+.brand-text {
+    vertical-align: middle;
+}
+
+.nav-center {
+    display: table-cell;
+    vertical-align: middle;
+    text-align: center;
+    padding: 0 6px;
+}
+
+.search-form {
+    display: inline-block;
+    width: 100%;
+    position: relative;
+    margin: 0;
+}
+
+.search-form input[type="text"] {
+    width: 100%;
+    height: 28px;
+    padding: 4px 28px 4px 9px;
+    border: none;
+    border-radius: 8px;
+    background-color: #e3e3e8;
+    color: #000000;
+    font-size: 13px;
+    font-family: inherit;
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+.search-form input[type="text"]:focus {
+    outline: none;
+    background-color: #ffffff;
+    box-shadow: 0 0 0 1px #007aff;
+}
+
+.search-form input[type="text"]::-webkit-input-placeholder {
+    color: #8e8e93;
+}
+
+.search-btn {
+    position: absolute;
+    right: 0;
+    top: 0;
+    width: 28px;
+    height: 28px;
+    background: transparent;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    text-align: center;
+    vertical-align: middle;
+    line-height: 28px;
 }
 
 .nav-right {
@@ -28,351 +119,113 @@ body {
     vertical-align: middle;
     text-align: right;
     white-space: nowrap;
+    width: 82px;
 }
 
 .nav-link-item {
-    color: #fff;
+    color: #007aff;
     text-decoration: none;
     font-size: 14px;
-    padding-right: 10px;
-    vertical-align: middle;
-    display: inline-block;
-}
-
-.nav-link-item:hover {
-    color: #ddd;
-}
-
-.nav-settings-icon {
-    padding-right: 4px;
-}
-
-/* Auth Status Badge in Navbar */
-.nav-auth-badge {
-    display: inline-block;
-    vertical-align: middle;
-    padding: 3px 8px;
-    border-radius: 12px;
-    font-size: 12px;
     font-weight: 500;
-    text-decoration: none;
-    margin-right: 10px;
-    transition: background-color 0.2s, border-color 0.2s;
-    line-height: 1.2;
-}
-
-.nav-auth-badge.badge-online {
-    background: rgba(16, 185, 129, 0.12);
-    color: #34d399;
-    border: 1px solid rgba(16, 185, 129, 0.3);
-}
-
-.nav-auth-badge.badge-online:hover {
-    background: rgba(16, 185, 129, 0.22);
-}
-
-.nav-auth-badge.badge-offline {
-    background: rgba(245, 158, 11, 0.14);
-    color: #fbbf24;
-    border: 1px solid rgba(245, 158, 11, 0.35);
-}
-
-.nav-auth-badge.badge-offline:hover {
-    background: rgba(245, 158, 11, 0.24);
-}
-
-/* Auth Status Dots */
-.auth-dot {
+    vertical-align: middle;
     display: inline-block;
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    margin-right: 4px;
-    vertical-align: middle;
+    padding: 4px 5px;
 }
 
-.badge-online .auth-dot,
-.dot-green {
-    background-color: #10b981;
-    box-shadow: 0 0 6px rgba(16, 185, 129, 0.8);
+.nav-link-item:active {
+    opacity: 0.6;
 }
 
-.badge-offline .auth-dot,
-.dot-red {
-    background-color: #f59e0b;
-    box-shadow: 0 0 6px rgba(245, 158, 11, 0.8);
-}
-
-/* Auth & Flash Notification Banner */
-.auth-notification {
-    background: #161616;
-    border-bottom: 1px solid #2a2a2a;
-    padding: 10px 14px;
-    box-sizing: border-box;
-    transition: max-height 0.3s ease, opacity 0.3s ease, padding 0.3s ease;
-    overflow: hidden;
-    position: relative;
-    max-height: 80px;
-    opacity: 1;
-}
-
-.auth-notification.is-dismissed {
-    max-height: 0;
-    opacity: 0;
-    padding-top: 0;
-    padding-bottom: 0;
-    border-bottom: none;
-    pointer-events: none;
-}
-
-.notification-inner {
-    display: table;
-    width: 100%;
-}
-
-.status-indicator-dot {
-    display: table-cell;
-    width: 14px;
-    vertical-align: middle;
-}
-
-.status-indicator-dot::before {
-    content: "";
+.nav-settings-btn {
+    padding: 4px 2px 4px 6px;
     display: inline-block;
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
 }
 
-.auth-notification.is-online .status-indicator-dot::before {
-    background: #10b981;
-    box-shadow: 0 0 6px #10b981;
-}
-
-.auth-notification.is-offline .status-indicator-dot::before {
-    background: #f59e0b;
-    box-shadow: 0 0 6px #f59e0b;
-}
-
-.auth-notification.is-success .status-indicator-dot::before {
-    background: #10b981;
-    box-shadow: 0 0 6px #10b981;
-}
-
-.auth-notification.is-warning .status-indicator-dot::before {
-    background: #f59e0b;
-    box-shadow: 0 0 6px #f59e0b;
-}
-
-.auth-notification.is-info .status-indicator-dot::before {
-    background: #3b82f6;
-    box-shadow: 0 0 6px #3b82f6;
-}
-
-.auth-notification.is-online {
-    background: linear-gradient(90deg, rgba(16, 185, 129, 0.12) 0%, #161616 100%);
-    border-left: 3px solid #10b981;
-}
-
-.auth-notification.is-offline {
-    background: linear-gradient(90deg, rgba(245, 158, 11, 0.14) 0%, #161616 100%);
-    border-left: 3px solid #f59e0b;
-}
-
-.auth-notification.is-success {
-    background: linear-gradient(90deg, rgba(16, 185, 129, 0.2) 0%, #161616 100%);
-    border-left: 3px solid #10b981;
-}
-
-.auth-notification.is-warning {
-    background: linear-gradient(90deg, rgba(245, 158, 11, 0.2) 0%, #161616 100%);
-    border-left: 3px solid #f59e0b;
-}
-
-.auth-notification.is-info {
-    background: linear-gradient(90deg, rgba(59, 130, 246, 0.2) 0%, #161616 100%);
-    border-left: 3px solid #3b82f6;
-}
-
-.notification-text {
-    display: table-cell;
+.nav-icon {
     vertical-align: middle;
-    padding-left: 8px;
-    font-size: 13px;
-    line-height: 1.3;
+    color: #007aff;
+    stroke: #007aff;
 }
 
-.notification-title {
-    font-weight: 600;
-    color: #fff;
-    margin-right: 6px;
-}
-
-.notification-desc {
-    color: #aaa;
-}
-
-.notification-link {
-    color: #fff;
-    font-weight: 600;
-    text-decoration: underline;
-}
-
-.notification-link:hover {
-    color: #38bdf8;
-}
-
-.notification-dismiss {
-    display: table-cell;
-    width: 24px;
-    vertical-align: middle;
-    text-align: right;
-    background: transparent;
-    border: none;
-    color: #888;
-    font-size: 20px;
-    line-height: 1;
-    cursor: pointer;
-    padding: 0 4px;
-}
-
-.notification-dismiss:hover {
-    color: #fff;
-}
-
-@media (max-width: 380px) {
-    .auth-label-full { display: none; }
-    .auth-label-short { display: inline; }
-    .nav-left { width: 70px; }
-    .nav-auth-badge { padding: 3px 5px; margin-right: 6px; font-size: 11px; }
-    .nav-link-item { font-size: 13px; padding-right: 6px; }
-    .notification-text { font-size: 12px; }
-    .notification-desc { display: block; font-size: 11px; margin-top: 2px; }
-}
-
-@media (min-width: 381px) {
-    .auth-label-full { display: inline; }
-    .auth-label-short { display: none; }
-}
-
-.brand {
-    color: #ffffff;
-    text-decoration: none;
-    font-size: 20px;
-    font-weight: bold;
-    display: inline-block;
-    vertical-align: middle;
-    letter-spacing: -0.5px;
-}
-
-.brand-icon {
-    color: #ff0000;
-    margin-right: 2px;
-    font-size: 20px;
-    vertical-align: middle;
-}
-
-.nav-center {
-    display: table-cell;
-    vertical-align: middle;
-    text-align: left;
-}
-
-.search-form {
-    display: inline-block;
-    width: 100%;
-    max-width: 400px;
-    position: relative;
-}
-
-.search-form input[type="text"] {
-    width: 100%;
-    padding: 10px 40px 10px 15px;
-    border: 1px solid #333;
-    border-radius: 20px;
-    background-color: #121212;
-    color: #fff;
-    font-size: 15px;
-    box-sizing: border-box;
-}
-
-.search-form input[type="text"]:focus {
-    outline: none;
-    border-color: #555;
-    background-color: #222;
-}
-
-.search-form button {
-    position: absolute;
-    right: 0;
-    top: 0;
-    width: 40px;
-    height: 100%;
-    background: transparent;
-    border: none;
-    color: #aaa;
-    font-size: 16px;
-    cursor: pointer;
-    border-radius: 0 20px 20px 0;
-}
-
+/* --------------------------------------------------------------------------
+   Content Layout & Typography
+   -------------------------------------------------------------------------- */
 .content {
-    padding: 12px;
-    padding-bottom: 60px; 
+    padding: 10px 10px 75px 10px; /* Leave space for bottom mini player */
+    max-width: 600px;
+    margin: 0 auto;
 }
 
-h1, h2, h3 {
+h1, h2, h3, h4 {
     margin-top: 0;
+    color: #000000;
     font-weight: 700;
 }
 
 .section-title {
-    font-size: 20px;
-    margin-bottom: 12px;
-    margin-top: 16px;
+    font-size: 18px;
+    margin-top: 14px;
+    margin-bottom: 8px;
+    letter-spacing: -0.3px;
 }
 
-/* Song List */
+/* --------------------------------------------------------------------------
+   Song & Playlist Items (iOS Grouped Table View)
+   -------------------------------------------------------------------------- */
 .song-list {
     list-style: none;
+    padding: 0;
+    margin: 0 0 16px 0;
+    background-color: #ffffff;
+    border: 1px solid #c8c7cc;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.song-item {
+    border-bottom: 1px solid #e5e5ea;
     padding: 0;
     margin: 0;
 }
 
-.song-item {
-    padding: 5px 0;
+.song-item:last-child {
+    border-bottom: none;
 }
 
-.song-link {
+.song-link, .song-item > .nav-link {
     text-decoration: none;
     color: inherit;
     display: block;
-    overflow: hidden; /* clear floats */
+    padding: 8px 10px;
+    overflow: hidden;
+    background-color: #ffffff;
+    transition: background-color 0.1s ease;
 }
 
-.song-link:active {
-    opacity: 0.7;
+.song-link:active, .song-item > .nav-link:active {
+    background-color: #e5e5ea;
 }
 
 .song-thumb {
     float: left;
-    width: 40px;
-    height: 40px;
-    border-radius: 4px;
+    width: 44px;
+    height: 44px;
+    border-radius: 6px;
     margin-right: 10px;
-    background-color: #222;
+    background-color: #e5e5ea;
+    border: 1px solid rgba(0, 0, 0, 0.06);
     object-fit: cover;
 }
 
 .song-info {
     overflow: hidden;
-    padding-top: 4px;
+    padding-top: 3px;
 }
 
 .song-title {
     font-size: 14px;
-    font-weight: 500;
-    color: #fff;
+    font-weight: 600;
+    color: #000000;
     margin-bottom: 2px;
     white-space: nowrap;
     overflow: hidden;
@@ -381,27 +234,171 @@ h1, h2, h3 {
 
 .song-artist {
     font-size: 12px;
-    color: #aaa;
+    color: #8e8e93;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
-/* Player */
+/* --------------------------------------------------------------------------
+   Chips / Category Filters
+   -------------------------------------------------------------------------- */
+.home-chips {
+    overflow-x: auto;
+    white-space: nowrap;
+    padding: 2px 0 10px 0;
+    margin-bottom: 12px;
+    -webkit-overflow-scrolling: touch;
+}
+
+.chip {
+    display: inline-block;
+    padding: 6px 14px;
+    border-radius: 16px;
+    background-color: #ffffff;
+    color: #1c1c1e;
+    font-size: 13px;
+    font-weight: 500;
+    margin-right: 6px;
+    border: 1px solid #d1d1d6;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.chip:active {
+    background-color: #007aff;
+    color: #ffffff;
+    border-color: #007aff;
+}
+
+/* --------------------------------------------------------------------------
+   Persistent Mini Player (iOS Music Style)
+   -------------------------------------------------------------------------- */
+#bottom-player {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 52px;
+    background-color: #f7f7f8;
+    border-top: 1px solid #c8c7cc;
+    z-index: 1000;
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.player-progress {
+    position: relative;
+    height: 3px;
+    background: #e5e5ea;
+    width: 100%;
+    overflow: hidden;
+}
+
+#download-bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    background: #007aff;
+    width: 0%;
+    z-index: 1;
+    transition: width 0.25s linear;
+}
+
+#progress-bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    background: #ff3b30;
+    width: 0%;
+    z-index: 2;
+}
+
+.player-inner {
+    display: table;
+    width: 100%;
+    height: 49px;
+}
+
+#player-thumb {
+    display: table-cell;
+    width: 49px;
+    height: 49px;
+    object-fit: cover;
+    vertical-align: middle;
+    background-color: #e5e5ea;
+}
+
+.player-info {
+    display: table-cell;
+    vertical-align: middle;
+    padding: 0 10px;
+    width: auto;
+}
+
+#player-title {
+    color: #000000;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 190px;
+}
+
+#player-time {
+    color: #8e8e93;
+    font-size: 11px;
+    font-weight: 500;
+    margin-top: 1px;
+}
+
+.player-controls {
+    display: table-cell;
+    vertical-align: middle;
+    text-align: center;
+    width: 52px;
+}
+
+.btn-play-pause {
+    background: transparent;
+    border: none;
+    color: #000000;
+    cursor: pointer;
+    padding: 6px;
+    border-radius: 50%;
+}
+
+.btn-play-pause:active {
+    opacity: 0.5;
+}
+
+.player-icon {
+    vertical-align: middle;
+    color: #000000;
+    fill: #000000;
+}
+
+/* --------------------------------------------------------------------------
+   Dedicated Player Page (/play/<id>)
+   -------------------------------------------------------------------------- */
 .player-container {
     text-align: center;
-    max-width: 400px;
-    margin: 20px auto;
+    max-width: 340px;
+    margin: 16px auto;
+    padding: 0 10px;
 }
 
 .album-art-container {
     width: 100%;
-    padding-top: 100%; /* 1:1 Aspect Ratio */
+    padding-top: 100%; /* 1:1 Square */
     position: relative;
-    border-radius: 8px;
-    margin-bottom: 30px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.8);
-    background-color: #222;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+    background-color: #e5e5ea;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    overflow: hidden;
 }
 
 .album-art {
@@ -411,25 +408,40 @@ h1, h2, h3 {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    border-radius: 8px;
 }
 
 .now-playing-title {
-    font-size: 24px;
+    font-size: 18px;
     font-weight: 700;
-    margin-bottom: 8px;
-    text-align: left;
+    color: #000000;
+    margin-bottom: 4px;
+    text-align: center;
+    line-height: 1.3;
 }
 
 .now-playing-artist {
-    font-size: 16px;
-    color: #aaa;
-    margin-bottom: 30px;
-    text-align: left;
+    font-size: 14px;
+    color: #8e8e93;
+    margin-bottom: 18px;
+    text-align: center;
+}
+
+.play-download-status {
+    margin: 12px auto;
+    max-width: 280px;
+    text-align: center;
+}
+
+#play-status-text {
+    font-size: 12px;
+    color: #6d6d72;
+    margin-bottom: 6px;
+    font-weight: 500;
 }
 
 .audio-container {
     width: 100%;
+    margin-top: 16px;
 }
 
 audio {
@@ -437,127 +449,110 @@ audio {
     outline: none;
 }
 
-/* Home */
-.home-chips {
-    overflow-x: auto;
-    white-space: nowrap;
-    padding-bottom: 10px;
-    margin-bottom: 20px;
+/* --------------------------------------------------------------------------
+   Settings & Cards
+   -------------------------------------------------------------------------- */
+.settings-card {
+    background-color: #ffffff;
+    border: 1px solid #c8c7cc;
+    border-radius: 10px;
+    padding: 14px;
+    margin-bottom: 18px;
+    color: #000000;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
 }
 
-.chip {
-    display: inline-block;
-    padding: 8px 16px;
-    border-radius: 16px;
-    background-color: rgba(255, 255, 255, 0.1);
-    color: #fff;
-    font-size: 14px;
-    margin-right: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+.settings-card h3 {
+    margin-top: 0;
+    font-size: 15px;
+    color: #000000;
 }
 
-/* Bottom Player */
-#bottom-player {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 50px;
-    background-color: #212121;
-    display: flex; /* Wait, iOS 9 supports flexbox? Yes, with prefixes, or standard display: flex is mostly supported in Safari 9. Better to use table/table-cell for absolute safety, but Safari 9 supports flex. Let's use float/table for safety. */
-}
-
-#bottom-player {
+.btn-primary {
     display: block;
-    z-index: 1000;
-    border-top: 1px solid #333;
-}
-.player-progress {
-    position: relative;
-    height: 4px;
-    background: #262626;
-    width: 100%;
-    overflow: hidden;
-}
-#download-bar {
-    position: absolute;
-    top: 0;
-    left: 0;
-    height: 100%;
-    background: #3b82f6;
-    width: 0%;
-    z-index: 1;
-    transition: width 0.25s linear;
-}
-#progress-bar {
-    position: absolute;
-    top: 0;
-    left: 0;
-    height: 100%;
-    background: #ff0000;
-    width: 0%;
-    z-index: 2;
-}
-.player-inner {
-    display: table;
-    width: 100%;
-    height: 48px;
-}
-#player-thumb {
-    display: table-cell;
-    width: 48px;
-    height: 48px;
-    object-fit: cover;
-    vertical-align: middle;
-}
-.player-info {
-    display: table-cell;
-    vertical-align: middle;
-    padding: 0 10px;
-    width: auto;
-}
-#player-title {
-    color: #fff;
-    font-size: 13px;
-    font-weight: bold;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 200px;
-}
-#player-time {
-    color: #aaa;
-    font-size: 11px;
-}
-.player-controls {
-    display: table-cell;
-    vertical-align: middle;
     text-align: center;
-    width: 60px;
-}
-#btn-play-pause {
-    background: transparent;
+    text-decoration: none;
+    padding: 10px;
+    background-color: #007aff;
+    color: #ffffff !important;
     border: none;
-    color: #fff;
-    font-size: 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
     cursor: pointer;
-}
-.content {
-    padding-bottom: 60px; /* Space for the bottom player */
+    width: 100%;
 }
 
-/* Download progress: animated shimmer while loading */
-#progress-bar.loading {
-    background: linear-gradient(90deg, #555 25%, #aaa 50%, #555 75%);
-    background-size: 200% 100%;
-    -webkit-animation: shimmer 1.2s infinite;
-    animation: shimmer 1.2s infinite;
+.btn-primary:active {
+    background-color: #0062cc;
 }
-@-webkit-keyframes shimmer {
-    0%   { background-position: 200% 0; }
-    100% { background-position: -200% 0; }
+
+.btn-secondary {
+    display: block;
+    text-align: center;
+    text-decoration: none;
+    padding: 10px;
+    background-color: #e5e5ea;
+    color: #000000 !important;
+    border: 1px solid #d1d1d6;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    width: 100%;
 }
-@keyframes shimmer {
-    0%   { background-position: 200% 0; }
-    100% { background-position: -200% 0; }
+
+.btn-secondary:active {
+    background-color: #d1d1d6;
+}
+
+.btn-danger {
+    display: block;
+    text-align: center;
+    text-decoration: none;
+    padding: 10px;
+    background-color: #ff3b30;
+    color: #ffffff !important;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    width: 100%;
+}
+
+.btn-danger:active {
+    background-color: #d32f2f;
+}
+
+.form-input, textarea, input[type="file"] {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #c8c7cc;
+    border-radius: 6px;
+    background-color: #ffffff;
+    color: #000000;
+    font-size: 13px;
+    font-family: inherit;
+    margin-bottom: 8px;
+}
+
+/* --------------------------------------------------------------------------
+   Auth Dots & Badges
+   -------------------------------------------------------------------------- */
+.auth-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 4px;
+    vertical-align: middle;
+}
+
+.dot-green {
+    background-color: #34c759;
+}
+
+.dot-red {
+    background-color: #ff9500;
 }

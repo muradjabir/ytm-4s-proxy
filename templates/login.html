@@ -1,11 +1,11 @@
 {% extends 'layout.html' if not request.headers.get('X-Requested-With') == 'XMLHttpRequest' else 'base_ajax.html' %}
 {% block content %}
-<div style="max-width: 400px; margin: 0 auto; padding-top: 20px;">
+<div style="max-width: 440px; margin: 0 auto; padding-top: 10px;">
     {% if is_logged_in %}
-    <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 8px; padding: 12px; margin-bottom: 20px;">
+    <div style="background: rgba(52, 199, 89, 0.12); border: 1px solid rgba(52, 199, 89, 0.35); border-radius: 8px; padding: 12px; margin-bottom: 16px;">
         <span class="auth-dot dot-green"></span>
-        <strong style="color: #10b981; font-size: 14px;">Currently Logged In</strong>
-        <span style="color: #ddd; font-size: 13px; display: block; margin-top: 4px;">
+        <strong style="color: #248a3d; font-size: 14px;">Currently Logged In</strong>
+        <span style="color: #3c3c43; font-size: 13px; display: block; margin-top: 4px;">
             {% if auth_type == 'oauth' %}
                 Connected with permanent Google OAuth (auto-refreshing token). You do not need to paste headers.
             {% else %}
@@ -14,20 +14,23 @@
         </span>
     </div>
     {% endif %}
+
     <h2 class="section-title">Log in to YouTube Music</h2>
-    <p style="color: #aaa; margin-bottom: 12px; font-size: 13px; line-height: 1.5;">
+    <p style="color: #6d6d72; margin-bottom: 12px; font-size: 13px; line-height: 1.5;">
         To connect your account, copy request headers from an active YouTube Music session:
     </p>
-    <div style="background: #181818; border: 1px solid #282828; border-radius: 6px; padding: 10px 12px; font-size: 12px; color: #bbb; margin-bottom: 16px; line-height: 1.6;">
-        1. Open <strong style="color: #fff;">music.youtube.com</strong> in your desktop browser while logged in.<br>
+
+    <div style="background: #ffffff; border: 1px solid #c8c7cc; border-radius: 8px; padding: 12px; font-size: 12px; color: #3c3c43; margin-bottom: 16px; line-height: 1.6;">
+        1. Open <strong style="color: #000;">music.youtube.com</strong> in your desktop browser while logged in.<br>
         2. Open Developer Tools (<strong>F12</strong>) &rarr; <strong>Network</strong> tab.<br>
         3. Click "Library" or search for a song, then find any request to <code>browse</code>.<br>
         4. Right click &rarr; <strong>Copy</strong> &rarr; <strong>Copy request headers</strong> (or cURL).<br>
         5. Paste the headers below and click Connect Account.
     </div>
+
     <form action="/login" method="POST">
-        <textarea name="headers" rows="10" placeholder="Paste raw headers here..." style="width: 100%; background: #121212; color: #fff; border: 1px solid #333; padding: 10px; border-radius: 8px; margin-bottom: 20px; font-family: monospace;" required></textarea>
-        <button type="submit" style="width: 100%; padding: 12px; background: #fff; color: #000; border: none; border-radius: 20px; font-weight: bold; font-size: 16px;">Connect Account</button>
+        <textarea name="headers" rows="8" placeholder="Paste raw headers here..." class="form-input" style="font-family: monospace; font-size: 11px; margin-bottom: 14px;" required></textarea>
+        <button type="submit" class="btn-primary" style="font-size: 15px; padding: 12px;">Connect Account</button>
     </form>
 </div>
 {% endblock %}

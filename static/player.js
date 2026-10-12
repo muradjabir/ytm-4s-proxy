@@ -217,57 +217,7 @@
         }
     }
 
-    // ---- Auth notification & status management ----
-    var authNotification = document.getElementById('auth-notification');
-    var btnDismissNotification = document.getElementById('btn-dismiss-notification');
-    var navAuthStatus = document.getElementById('nav-auth-status');
-
-    function dismissNotification() {
-        if (authNotification && authNotification.className.indexOf('is-dismissed') === -1) {
-            authNotification.className += ' is-dismissed';
-            try {
-                sessionStorage.setItem('auth_notif_dismissed', '1');
-            } catch(e) {}
-        }
-    }
-
-    function showNotification() {
-        if (authNotification) {
-            authNotification.className = authNotification.className.replace(/\bis-dismissed\b/g, '').trim();
-        }
-    }
-
-    if (btnDismissNotification) {
-        btnDismissNotification.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            dismissNotification();
-        });
-    }
-
-    // Auto-dismiss positive notifications / flash banners after 4.5 seconds
-    if (authNotification) {
-        var notifClass = authNotification.className;
-        if (notifClass.indexOf('is-online') > -1 || notifClass.indexOf('banner-flash') > -1) {
-            setTimeout(function() {
-                dismissNotification();
-            }, 4500);
-        } else if (notifClass.indexOf('is-offline') > -1) {
-            try {
-                if (sessionStorage.getItem('auth_notif_dismissed') === '1') {
-                    authNotification.className += ' is-dismissed';
-                }
-            } catch(e) {}
-        }
-    }
-
-    if (navAuthStatus) {
-        navAuthStatus.addEventListener('click', function() {
-            if (authNotification && authNotification.className.indexOf('is-dismissed') > -1) {
-                showNotification();
-            }
-        });
-    }
+    // Auth notification removed (login status no longer needed)
 
     // ---- AJAX (PJAX) navigation ----
     function loadPage(url, pushState) {

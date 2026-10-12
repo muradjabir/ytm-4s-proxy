@@ -1,7 +1,7 @@
 {% extends 'layout.html' if not request.headers.get('X-Requested-With') == 'XMLHttpRequest' else 'base_ajax.html' %}
 {% block content %}
 <h2 class="section-title">{{ playlist.title }}</h2>
-<p style="color: #aaa;">{{ playlist.trackCount }} songs</p>
+<p style="color: #8e8e93; font-size: 13px; margin: 4px 0 14px 0;">{{ playlist.trackCount }} songs</p>
 
 {% if playlist.tracks %}
 <ul class="song-list">

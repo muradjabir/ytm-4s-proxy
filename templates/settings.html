@@ -2,20 +2,20 @@
 {% block content %}
 <h2 class="section-title">Settings</h2>
 
-<div style="padding: 15px; color: #fff;">
-    <h3 style="margin-top: 0;">Account Status</h3>
-    <div class="settings-card auth-card" style="background: #121212; border: 1px solid #262626; border-radius: 8px; padding: 14px; margin-bottom: 24px;">
+<div class="settings-container">
+    <h3 style="margin-top: 14px; margin-bottom: 8px;">Account Status</h3>
+    <div class="settings-card auth-card">
         <div style="margin-bottom: 12px;">
             <div style="font-weight: 600; font-size: 15px;">
                 <span class="auth-dot {% if is_logged_in %}dot-green{% else %}dot-red{% endif %}"></span>
                 {% if is_logged_in %}Logged In to YouTube Music{% else %}Not Logged In (Guest Mode){% endif %}
             </div>
-            <div style="color: #aaa; font-size: 13px; margin-top: 4px;">
+            <div style="color: #6d6d72; font-size: 13px; margin-top: 4px;">
                 {% if is_logged_in %}
                     {% if auth_type == 'oauth' %}
-                        Connected via permanent Google OAuth (<code style="color: #60a5fa;">oauth.json</code>). Tokens auto-refresh automatically.
+                        Connected via Google OAuth (<code>oauth.json</code>). Auto-refreshing session.
                     {% else %}
-                        Active credentials loaded from <code style="color: #60a5fa;">headers_auth.json</code>. Library access enabled.
+                        Active credentials loaded from <code>headers_auth.json</code>.
                     {% endif %}
                 {% else %}
                     No active account session. Library and personal mixes require login.
@@ -24,24 +24,24 @@
         </div>
         <div style="display: table; width: 100%;">
             {% if is_logged_in %}
-                <div style="display: table-cell; width: 50%; padding-right: 6px;">
-                    <a href="/login" style="display: block; text-align: center; text-decoration: none; padding: 10px; background: #262626; color: #fff; border-radius: 4px; font-size: 14px; font-weight: 500;">{% if auth_type == 'oauth' %}Account Details{% else %}Update Headers{% endif %}</a>
+                <div style="display: table-cell; width: 50%; padding-right: 5px;">
+                    <a href="/login" class="btn-secondary">{% if auth_type == 'oauth' %}Account Details{% else %}Update Headers{% endif %}</a>
                 </div>
-                <div style="display: table-cell; width: 50%; padding-left: 6px;">
+                <div style="display: table-cell; width: 50%; padding-left: 5px;">
                     <form action="/logout" method="POST" style="margin: 0;">
-                        <button type="submit" style="width: 100%; padding: 10px; background: #3b1818; color: #f87171; border: 1px solid #7f1d1d; border-radius: 4px; font-size: 14px; font-weight: 600; cursor: pointer;">Log Out</button>
+                        <button type="submit" class="btn-danger">Log Out</button>
                     </form>
                 </div>
             {% else %}
                 <div style="display: table-cell; width: 100%;">
-                    <a href="/login" style="display: block; text-align: center; text-decoration: none; padding: 11px; background: #fff; color: #000; border-radius: 4px; font-size: 14px; font-weight: 600;">Log In</a>
+                    <a href="/login" class="btn-primary">Log In</a>
                 </div>
             {% endif %}
         </div>
     </div>
 
-    <h3 style="margin-top: 24px;">YouTube Browser Cookie Sync</h3>
-    <div class="settings-card" style="background: #121212; border: 1px solid #262626; border-radius: 8px; padding: 14px; margin-bottom: 24px;">
+    <h3 style="margin-top: 20px; margin-bottom: 8px;">YouTube Browser Cookie Sync</h3>
+    <div class="settings-card">
         <div style="margin-bottom: 12px;">
             <div style="font-weight: 600; font-size: 15px;">
                 <span class="auth-dot {% if cookies_status.has_essential %}dot-green{% else %}dot-red{% endif %}"></span>
@@ -51,64 +51,67 @@
                     Cookies Missing or Expired for yt-dlp
                 {% endif %}
             </div>
-            <div style="color: #aaa; font-size: 13px; margin-top: 4px; line-height: 1.4;">
-                Last synced: <strong style="color: #fff;">{{ cookies_status.last_modified_str }}</strong>
+            <div style="color: #6d6d72; font-size: 13px; margin-top: 4px; line-height: 1.4;">
+                Last synced: <strong style="color: #000;">{{ cookies_status.last_modified_str }}</strong>
                 {% if cookies_status.essential_found %}
-                    <br><span style="color: #60a5fa; font-size: 12px;">Key cookies: {{ cookies_status.essential_found|join(', ') }}</span>
+                    <br><span style="color: #007aff; font-size: 12px;">Key cookies: {{ cookies_status.essential_found|join(', ') }}</span>
                 {% endif %}
             </div>
         </div>
 
-        <div style="border-top: 1px solid #222; padding-top: 12px; margin-top: 10px;">
-            <div style="font-weight: 600; font-size: 13px; margin-bottom: 6px; color: #eee;">Option 1: Mac Browser Extension (Automatic)</div>
-            <p style="color: #999; font-size: 12px; margin-top: 0; margin-bottom: 10px; line-height: 1.4;">
-                Install our lightweight extension on your Mac (Chrome / Brave / Edge) to sync fresh YouTube cookies automatically in the background or on 1-click.
+        <div style="border-top: 1px solid #e5e5ea; padding-top: 12px; margin-top: 10px;">
+            <div style="font-weight: 600; font-size: 13px; margin-bottom: 6px; color: #000;">Option 1: Mac Browser Extension</div>
+            <p style="color: #6d6d72; font-size: 12px; margin-top: 0; margin-bottom: 10px; line-height: 1.4;">
+                Install our lightweight extension on your Mac (Chrome / Brave / Edge) to sync fresh YouTube cookies in the background.
             </p>
-            <a href="/extension/download" style="display: block; text-align: center; text-decoration: none; padding: 9px; background: #2563eb; color: #fff; border-radius: 4px; font-size: 13px; font-weight: 600; margin-bottom: 14px;">Download Extension (.zip)</a>
+            <a href="/extension/download" class="btn-primary" style="margin-bottom: 14px;">Download Extension (.zip)</a>
 
-            <div style="font-weight: 600; font-size: 13px; margin-bottom: 6px; color: #eee;">Option 2: Direct Upload or Paste</div>
+            <div style="font-weight: 600; font-size: 13px; margin-bottom: 6px; color: #000;">Option 2: Direct Upload or Paste</div>
             <form action="/api/cookies/upload" method="POST" enctype="multipart/form-data" style="margin-bottom: 10px;">
-                <label style="display: block; font-size: 12px; color: #aaa; margin-bottom: 4px;">Upload cookies.txt file:</label>
-                <input type="file" name="file" accept=".txt" style="display: block; width: 100%; color: #ccc; font-size: 12px; margin-bottom: 8px;">
-                <button type="submit" style="width: 100%; padding: 8px; background: #262626; color: #fff; border: 1px solid #444; border-radius: 4px; font-size: 13px; font-weight: 500; cursor: pointer;">Upload cookies.txt</button>
+                <label style="display: block; font-size: 12px; color: #6d6d72; margin-bottom: 4px;">Upload cookies.txt file:</label>
+                <input type="file" name="file" accept=".txt" class="form-input">
+                <button type="submit" class="btn-secondary" style="font-size: 13px; padding: 8px;">Upload cookies.txt</button>
             </form>
 
             <form action="/api/cookies/upload" method="POST">
-                <label style="display: block; font-size: 12px; color: #aaa; margin-bottom: 4px;">Or paste raw cookies / Netscape text:</label>
-                <textarea name="cookies_text" rows="3" placeholder="Paste Netscape cookies or Cookie header here..." style="width: 100%; box-sizing: border-box; background: #181818; color: #fff; border: 1px solid #333; padding: 6px 8px; border-radius: 4px; font-size: 12px; font-family: monospace; margin-bottom: 8px;"></textarea>
-                <button type="submit" style="width: 100%; padding: 8px; background: #fff; color: #000; border: none; border-radius: 4px; font-size: 13px; font-weight: 600; cursor: pointer;">Save Pasted Cookies</button>
+                <label style="display: block; font-size: 12px; color: #6d6d72; margin-bottom: 4px;">Or paste raw cookies / Netscape text:</label>
+                <textarea name="cookies_text" rows="3" placeholder="Paste Netscape cookies or Cookie header here..." class="form-input" style="font-family: monospace; font-size: 11px;"></textarea>
+                <button type="submit" class="btn-primary" style="font-size: 13px; padding: 8px;">Save Pasted Cookies</button>
             </form>
         </div>
     </div>
 
-    <h3 style="margin-top: 20px;">Cache Usage</h3>
-    <ul style="list-style: none; padding: 0; line-height: 1.8;">
-        <li><strong>Audio Cache:</strong> {{ audio_size }}</li>
-        <li><strong>Image Cache:</strong> {{ image_size }}</li>
-        <li><strong>Metadata Cache:</strong> {{ metadata_size }}</li>
-        <li style="border-top: 1px solid #333; margin-top: 5px; padding-top: 5px;"><strong>Total:</strong> {{ total_size }}</li>
-    </ul>
+    <h3 style="margin-top: 20px; margin-bottom: 8px;">Cache Usage</h3>
+    <div class="settings-card">
+        <ul style="list-style: none; padding: 0; margin: 0; line-height: 2;">
+            <li><strong>Audio Cache:</strong> {{ audio_size }}</li>
+            <li><strong>Image Cache:</strong> {{ image_size }}</li>
+            <li><strong>Metadata Cache:</strong> {{ metadata_size }}</li>
+            <li style="border-top: 1px solid #e5e5ea; margin-top: 6px; padding-top: 6px;"><strong>Total:</strong> {{ total_size }}</li>
+        </ul>
+    </div>
 
-    <h3 style="margin-top: 20px;">Clear Caches</h3>
-    
-    <form action="/settings/clear" method="POST" style="margin-bottom: 10px;">
-        <input type="hidden" name="type" value="audio">
-        <button type="submit" style="width: 100%; padding: 10px; background: #333; color: white; border: none; border-radius: 4px; font-size: 16px;">Clear Audio Cache</button>
-    </form>
-    
-    <form action="/settings/clear" method="POST" style="margin-bottom: 10px;">
-        <input type="hidden" name="type" value="image">
-        <button type="submit" style="width: 100%; padding: 10px; background: #333; color: white; border: none; border-radius: 4px; font-size: 16px;">Clear Image Cache</button>
-    </form>
-    
-    <form action="/settings/clear" method="POST" style="margin-bottom: 10px;">
-        <input type="hidden" name="type" value="metadata">
-        <button type="submit" style="width: 100%; padding: 10px; background: #333; color: white; border: none; border-radius: 4px; font-size: 16px;">Clear Metadata Cache</button>
-    </form>
-    
-    <form action="/settings/clear" method="POST" style="margin-top: 20px;">
-        <input type="hidden" name="type" value="all">
-        <button type="submit" style="width: 100%; padding: 12px; background: #d32f2f; color: white; border: none; border-radius: 4px; font-size: 16px; font-weight: bold;">Clear All Caches</button>
-    </form>
+    <h3 style="margin-top: 20px; margin-bottom: 8px;">Clear Caches</h3>
+    <div class="settings-card">
+        <form action="/settings/clear" method="POST" style="margin-bottom: 8px;">
+            <input type="hidden" name="type" value="audio">
+            <button type="submit" class="btn-secondary">Clear Audio Cache</button>
+        </form>
+        
+        <form action="/settings/clear" method="POST" style="margin-bottom: 8px;">
+            <input type="hidden" name="type" value="image">
+            <button type="submit" class="btn-secondary">Clear Image Cache</button>
+        </form>
+        
+        <form action="/settings/clear" method="POST" style="margin-bottom: 8px;">
+            <input type="hidden" name="type" value="metadata">
+            <button type="submit" class="btn-secondary">Clear Metadata Cache</button>
+        </form>
+        
+        <form action="/settings/clear" method="POST" style="margin-top: 14px;">
+            <input type="hidden" name="type" value="all">
+            <button type="submit" class="btn-danger">Clear All Caches</button>
+        </form>
+    </div>
 </div>
 {% endblock %}
