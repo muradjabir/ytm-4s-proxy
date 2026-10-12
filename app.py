@@ -218,7 +218,38 @@ def is_user_logged_in():
     return bool(_auth_state['logged_in'])
 
 import shutil
-NODE_PATH = shutil.which('node') or shutil.which('nodejs') or 'node'
+
+def find_node_binary():
+    """Locate modern Node.js binary (v20+) for YouTube challenge solver."""
+    nvm_dir = os.path.expanduser('~/.nvm/versions/node')
+    if os.path.isdir(nvm_dir):
+        try:
+            versions = sorted(os.listdir(nvm_dir), reverse=True)
+            for v in versions:
+                cand = os.path.join(nvm_dir, v, 'bin', 'node')
+                if os.path.isfile(cand) and os.access(cand, os.X_OK):
+                    return cand
+        except Exception:
+            pass
+    for cand in [
+        '/home/murad/.nvm/versions/node/v24.11.1/bin/node',
+        '/usr/local/bin/node',
+        os.path.expanduser('~/.local/bin/node'),
+        shutil.which('node'),
+        shutil.which('nodejs'),
+        '/usr/bin/node',
+    ]:
+        if cand and os.path.isfile(cand) and os.access(cand, os.X_OK):
+            return cand
+    return 'node'
+
+NODE_PATH = find_node_binary()
+node_dir = os.path.dirname(NODE_PATH)
+if node_dir and node_dir not in os.environ.get('PATH', ''):
+    os.environ['PATH'] = f"{node_dir}:{os.environ.get('PATH', '')}"
+
+print(f"[node] Using Node binary at: {NODE_PATH}")
+
 YTDLP_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'venv', 'bin', 'yt-dlp')
 if not os.path.exists(YTDLP_PATH):
     YTDLP_PATH = shutil.which('yt-dlp')
@@ -229,6 +260,7 @@ def make_ytdl_opts():
         'format': 'bestaudio[ext=m4a]/bestaudio',
         'quiet': True,
         'no_warnings': True,
+        'js_runtimes': {'node': {'path': NODE_PATH}},
     }
     if os.path.exists('cookies.txt'):
         opts['cookiefile'] = 'cookies.txt'
@@ -558,13 +590,12 @@ def download_audio(video_id, background=False):
         cmd = [
             YTDLP_PATH,
             '--format', 'bestaudio[ext=m4a]/bestaudio',
-            '--js-runtimes', 'node',
+            '--js-runtimes', f'node:{NODE_PATH}',
             '--remote-components', 'ejs:github',
-            '--concurrent-fragments', '4',  # Download fragments concurrently for faster playback
+            '--concurrent-fragments', '4',  # Download fragments concurrently for fast completion
             '--buffer-size', '16K',
             '--output', out_tmpl,
             '--no-playlist',
-            '--no-part',  # Write directly to destination so stream can read it immediately
             '--newline',  # Force one progress line per update (parseable)
         ]
 
@@ -789,87 +820,40 @@ def preload(video_id):
 @app.route('/stream/<video_id>')
 def stream(video_id):
     """
-    Stream audio to the browser in chunks as soon as initial bytes arrive,
-    allowing instant playback while yt-dlp finishes downloading in the background.
+    Serve fully repaired M4A/AAC stream to iOS Safari with HTTP 206 byte-range support.
+    If cached, serves immediately. If not yet downloaded, triggers background download and waits.
     """
     try:
-        # If file is already fully downloaded or cached, stream directly with conditional range support
         cached_path = get_cached_audio_path(video_id)
-        cur_status = download_progress.get(video_id, {}).get('status')
-        if cached_path and os.path.exists(cached_path) and (cur_status == 'done' or cur_status != 'downloading'):
+        if cached_path and os.path.exists(cached_path):
             ext = cached_path.rsplit('.', 1)[-1]
             mime = {'m4a': 'audio/mp4', 'mp3': 'audio/mpeg', 'webm': 'audio/webm', 'ogg': 'audio/ogg'}.get(ext, 'audio/mp4')
             return send_file(cached_path, mimetype=mime, conditional=True)
 
-        if video_id not in download_progress:
-            download_audio_bg(video_id)
+        # File is not cached yet: start download
+        download_audio_bg(video_id)
 
-        # Wait until file starts downloading and we have initial chunks & total size
+        # Wait up to 35s for yt-dlp download & container fixup to complete (~2-4s typical)
         import time
-        for _ in range(80): # Wait up to 16s (80 * 0.2s)
+        for _ in range(175):  # 175 * 0.2s = 35 seconds
             cached_path = get_cached_audio_path(video_id)
             status_info = download_progress.get(video_id, {})
             cur_status = status_info.get('status')
-            if cur_status == 'error':
-                return "Audio download failed internally", 500
             if cached_path and os.path.exists(cached_path):
-                file_size = os.path.getsize(cached_path)
-                total_size = status_info.get('total_bytes') or file_size
-                if cur_status == 'done':
-                    total_size = file_size
-                    break
-                if file_size > 32768 and total_size:
-                    break
+                break
+            if cur_status == 'error':
+                err_msg = status_info.get('message', 'Audio download failed')
+                return f"Audio download failed: {err_msg}", 500
             time.sleep(0.2)
         else:
-            return "Audio is still preparing...", 500
+            return "Audio download timed out", 504
 
         ext = cached_path.rsplit('.', 1)[-1]
         mime = {'m4a': 'audio/mp4', 'mp3': 'audio/mpeg', 'webm': 'audio/webm', 'ogg': 'audio/ogg'}.get(ext, 'audio/mp4')
-
-        # Handle Range requests for the growing file
-        range_header = request.headers.get('Range', None)
-        start = 0
-        end = total_size - 1
-        
-        if range_header:
-            match = re.search(r'bytes=(\d+)-(\d*)', range_header)
-            if match:
-                start = int(match.group(1))
-                if match.group(2):
-                    end = int(match.group(2))
-                    
-        length = end - start + 1
-        
-        def generate():
-            with open(cached_path, 'rb') as f:
-                f.seek(start)
-                pos = start
-                while pos <= end:
-                    chunk_size = min(16384, end - pos + 1)
-                    data = f.read(chunk_size)
-                    if data:
-                        yield data
-                        pos += len(data)
-                    else:
-                        s = download_progress.get(video_id, {}).get('status')
-                        if s in ('done', 'error'):
-                            break
-                        time.sleep(0.04)
-
-        headers = {
-            'Content-Type': mime,
-            'Content-Length': str(length),
-            'Accept-Ranges': 'bytes',
-        }
-        status_code = 200
-        if range_header:
-            headers['Content-Range'] = f'bytes {start}-{end}/{total_size}'
-            status_code = 206
-            
-        return Response(generate(), status=status_code, headers=headers)
+        return send_file(cached_path, mimetype=mime, conditional=True)
 
     except Exception as e:
+        print(f"[stream] Error serving {video_id}: {e}")
         return f"Stream error: {str(e)}", 500
 
 @app.route('/login', methods=['GET', 'POST'])

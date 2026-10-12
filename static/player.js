@@ -65,8 +65,14 @@
                         if (!isAudioPlaying) {
                             if (data.cached) {
                                 playerTime.textContent = 'Cached';
+                                if (audio.paused && (!audio.currentTime || audio.currentTime === 0)) {
+                                    try { audio.play(); } catch(e) {}
+                                }
                             } else if (data.status === 'done') {
                                 playerTime.textContent = 'Ready';
+                                if (audio.paused && (!audio.currentTime || audio.currentTime === 0)) {
+                                    try { audio.play(); } catch(e) {}
+                                }
                             } else if (data.status === 'error') {
                                 playerTime.textContent = 'Failed';
                                 stopProgressPoll();
@@ -108,7 +114,12 @@
         }
     }
 
-    // Buffering indicator
+    // Audio error & buffering indicators
+    audio.addEventListener('error', function() {
+        var err = audio.error;
+        console.log('Audio playback status:', err ? ('Code ' + err.code) : 'error');
+    });
+
     audio.addEventListener('waiting', function() {
         if (audio.currentTime > 0) {
             playerTime.textContent = 'Buffering…';

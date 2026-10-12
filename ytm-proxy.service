@@ -5,7 +5,9 @@ After=network.target
 [Service]
 Type=simple
 WorkingDirectory=/home/murad/ytm_4s_proxy
-ExecStart=/bin/bash -c 'source venv/bin/activate && python app.py'
+Environment="PATH=/home/murad/.nvm/versions/node/v24.11.1/bin:/home/murad/ytm_4s_proxy/venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+Environment="PYTHONUNBUFFERED=1"
+ExecStart=/bin/bash -c 'source venv/bin/activate && python -u app.py'
 Restart=on-failure
 StandardOutput=append:/home/murad/ytm_4s_proxy/proxy.log
 StandardError=append:/home/murad/ytm_4s_proxy/proxy.log
