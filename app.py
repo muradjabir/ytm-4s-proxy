@@ -221,6 +221,12 @@ import shutil
 
 def find_node_binary():
     """Locate modern Node.js binary (v20+) for YouTube challenge solver."""
+    # Check standard PATH first (e.g. inside Docker container)
+    for name in ['node', 'nodejs']:
+        cand = shutil.which(name)
+        if cand and os.path.isfile(cand) and os.access(cand, os.X_OK):
+            return cand
+
     nvm_dir = os.path.expanduser('~/.nvm/versions/node')
     if os.path.isdir(nvm_dir):
         try:
@@ -235,8 +241,6 @@ def find_node_binary():
         '/home/murad/.nvm/versions/node/v24.11.1/bin/node',
         '/usr/local/bin/node',
         os.path.expanduser('~/.local/bin/node'),
-        shutil.which('node'),
-        shutil.which('nodejs'),
         '/usr/bin/node',
     ]:
         if cand and os.path.isfile(cand) and os.access(cand, os.X_OK):
@@ -250,9 +254,13 @@ if node_dir and node_dir not in os.environ.get('PATH', ''):
 
 print(f"[node] Using Node binary at: {NODE_PATH}")
 
-YTDLP_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'venv', 'bin', 'yt-dlp')
-if not os.path.exists(YTDLP_PATH):
-    YTDLP_PATH = shutil.which('yt-dlp')
+YTDLP_PATH = shutil.which('yt-dlp')
+if not YTDLP_PATH:
+    venv_ytdlp = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'venv', 'bin', 'yt-dlp')
+    if os.path.exists(venv_ytdlp):
+        YTDLP_PATH = venv_ytdlp
+    else:
+        YTDLP_PATH = 'yt-dlp'
 
 def make_ytdl_opts():
     """Build yt-dlp Python API options for metadata only (no download)."""
